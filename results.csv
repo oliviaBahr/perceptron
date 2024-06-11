@@ -1,0 +1,257 @@
+dataset,model,accuracy,epochs
+cod RNA,Adding,0.8804971706483762,20
+cod RNA,Adding (prop),0.8825773055442038,20
+cod RNA,perceptron,0.6846957296487334,-1
+cod RNA,svm,0.8550753450630851,-1
+cod RNA,Adding,0.8898964350537706,200
+cod RNA,Adding (prop),0.8901210159894263,200
+cod RNA,perceptron,0.6846957296487334,-1
+cod RNA,svm,0.7161812404967288,-1
+cod RNA,Adding,0.8804971706483762,20
+cod RNA,Adding (prop),0.8825773055442038,20
+cod RNA,perceptron,0.6846957296487334,-1
+cod RNA,svm,0.9373271923333223,-1
+cod RNA,Adding,0.8804971706483762,20
+cod RNA,Adding (prop),0.8825773055442038,20
+cod RNA,perceptron,0.6846957296487334,-1
+cod RNA,svm,0.9385826365801846,-1
+cod RNA,Adding,0.8898964350537706,200
+cod RNA,Adding (prop),0.8901210159894263,200
+cod RNA,perceptron,0.6846957296487334,-1
+cod RNA,svm,0.94011052327358,-1
+webspam,Adding,0.9247542857142858,200
+webspam,Adding (prop),0.9255828571428572,200
+webspam,perceptron,0.9182228571428571,-1
+webspam,svm,0.92544,-1
+cod RNA,Adding,0.8898964350537706,200
+cod RNA,Adding (prop),0.8901210159894263,200
+cod RNA,perceptron,0.6846957296487334,-1
+cod RNA,svm,0.658231995788187,-1
+covtype,Adding,0.609915879606721,50
+covtype,Adding (prop),0.6101675953615455,50
+covtype,perceptron,0.5169165895742346,-1
+covtype,svm,0.5122135926507605,-1
+covtype,Adding,0.6092037606764054,50
+covtype,Adding (prop),0.610683935371442,50
+covtype,perceptron,0.5113422688840602,-1
+covtype,svm,0.5125599707407328,-1
+cod RNA,Adding,0.8898964350537706,200
+cod RNA,Adding (prop),0.8901210159894263,200
+cod RNA,perceptron,0.6846957296487334,-1
+cod RNA,svm,0.9461410736441386,-1
+covtype,Adding,0.5980120909618984,100
+covtype,Adding (prop),0.5974441169510123,100
+covtype,perceptron,0.4881951765237409,-1
+covtype,svm,0.5053936016867107,-1
+covtype,Adding,0.5904003786493406,100
+covtype,Adding (prop),0.591732105591532,100
+covtype,perceptron,0.5129321658311998,-1
+covtype,svm,0.49675136077106774,-1
+cod RNA,Adding,0.8898964350537706,200
+cod RNA,Adding (prop),0.8901210159894263,200
+cod RNA,perceptron,0.6846957296487334,-1
+cod RNA,svm,0.6844637854037119,-1
+cod RNA,Adding,0.8898964350537706,200
+cod RNA,Adding (prop),0.8901210159894263,200
+cod RNA,perceptron,0.6846957296487334,-1
+cod RNA,svm,0.5145664667528174,-1
+covtype,Adding,0.5674748822099352,100
+covtype,Adding (prop),0.5663884167724447,100
+covtype,perceptron,0.5959833050063467,-1
+covtype,svm,0.5124825197392483,-1
+covtype,Adding,0.597801252124524,200
+covtype,Adding (prop),0.5960499989242917,200
+covtype,perceptron,0.5076246208128052,-1
+covtype,svm,0.5705664680191906,-1
+covtype,Adding,0.6028592328048019,300
+covtype,Adding (prop),0.6014199350272155,300
+covtype,perceptron,0.5107549321228029,-1
+covtype,svm,0.5738473784987415,-1
+webspam,Adding,0.9261657142857143,200
+webspam,Adding (prop),0.92624,200
+webspam,perceptron,0.9195257142857143,-1
+webspam,svm,0.9255085714285715,-1
+IMDB,Adding,0.8815152606104244,200
+IMDB,Adding (prop),0.8814752590103604,200
+IMDB,perceptron,0.8492739709588384,-1
+IMDB,svm,0.8525541021640866,-1
+IMDB,Adding,0.8811952478099124,300
+IMDB,Adding (prop),0.8811552462098484,300
+IMDB,perceptron,0.8492739709588384,-1
+IMDB,svm,0.8524740989639585,-1
+poker,Adding,0.465967,200
+poker,Adding (prop),0.498064,200
+poker,perceptron,0.410966,-1
+poker,svm,0.495826,-1
+poker,Adding,0.469817,300
+poker,Adding (prop),0.497097,300
+poker,perceptron,0.410966,-1
+poker,svm,0.438163,-1
+poker,Adding,0.500669,100
+poker,Adding (prop),0.50121,100
+poker,perceptron,0.410966,-1
+poker,svm,0.501209,-1
+colon,Adding,0.58,300
+colon,Adding (prop),0.58,300
+colon,perceptron,0.58,-1
+colon,svm,0.68,-1
+real-sim,Adding,0.9702669063753284,20
+real-sim,Adding (prop),0.9702945650670723,20
+real-sim,perceptron,0.9602821186557876,-1
+real-sim,svm,0.9717051583460102,-1
+real-sim,Adding,0.9722583321808879,200
+real-sim,Adding (prop),0.9722583321808879,200
+real-sim,perceptron,0.9596183100539345,-1
+real-sim,svm,0.9715392061955469,-1
+real-sim,Adding,0.9725072604065828,300
+real-sim,Adding (prop),0.9724796017148389,300
+real-sim,perceptron,0.9636011616650533,-1
+real-sim,svm,0.9727561886322776,-1
+real-sim,Adding,0.9726178951735583,300
+real-sim,Adding (prop),0.9726178951735583,300
+real-sim,perceptron,0.9621905683861154,-1
+real-sim,svm,0.9719264278799613,-1
+poker,Adding,0.502374,100
+poker,Adding (prop),0.50204,100
+poker,perceptron,0.410966,-1
+poker,svm,0.501729,-1
+webspam,Adding,0.9274457142857143,200
+webspam,Adding (prop),0.9275257142857143,200
+webspam,perceptron,0.8699028571428571,-1
+webspam,svm,0.9265371428571428,-1
+rcv,Adding,0.9609594935924027,100
+rcv,Adding (prop),0.9609535886530686,100
+rcv,perceptron,0.9498390165914032,-1
+rcv,svm,0.9622733425942466,-1
+rcv,Adding,0.9612975513692816,200
+rcv,Adding (prop),0.9613019800737822,200
+rcv,perceptron,0.9498390165914032,-1
+rcv,svm,0.9622733425942466,-1
+poker,Adding,0.50158,100
+poker,Adding (prop),0.501456,100
+poker,perceptron,0.410966,-1
+poker,svm,0.461384,-1
+webspam,Adding,0.9267028571428572,100
+webspam,Adding (prop),0.9267257142857143,100
+webspam,perceptron,0.9206685714285714,-1
+webspam,svm,0.9256342857142857,-1
+german.numer,Adding,0.765,100
+german.numer,Adding (prop),0.76,100
+german.numer,perceptron,0.605,-1
+german.numer,svm,0.75,-1
+german.numer,Adding,0.715,300
+german.numer,Adding (prop),0.715,300
+german.numer,perceptron,0.655,-1
+german.numer,svm,0.685,-1
+german.numer,Adding,0.765,200
+german.numer,Adding (prop),0.765,200
+german.numer,perceptron,0.76,-1
+german.numer,svm,0.705,-1
+german.numer,Adding,0.72,200
+german.numer,Adding (prop),0.72,200
+german.numer,perceptron,0.75,-1
+german.numer,svm,0.71,-1
+german.numer,Adding,0.74,200
+german.numer,Adding (prop),0.7,200
+german.numer,perceptron,0.78,-1
+german.numer,svm,0.73,-1
+german.numer,Adding,0.77,200
+german.numer,Adding (prop),0.76,200
+german.numer,perceptron,0.69,-1
+german.numer,svm,0.68,-1
+german.numer,Adding,0.83,200
+german.numer,Adding (prop),0.78,200
+german.numer,perceptron,0.8,-1
+german.numer,svm,0.62,-1
+german.numer,Adding,0.75,200
+german.numer,Adding (prop),0.73,200
+german.numer,perceptron,0.77,-1
+german.numer,svm,0.7,-1
+german.numer,Adding,0.77,200
+german.numer,Adding (prop),0.77,200
+german.numer,perceptron,0.38,-1
+german.numer,svm,0.7,-1
+german.numer,Adding,0.76,200
+german.numer,Adding (prop),0.74,200
+german.numer,perceptron,0.66,-1
+german.numer,svm,0.68,-1
+german.numer,Adding,0.75,200
+german.numer,Adding (prop),0.77,200
+german.numer,perceptron,0.67,-1
+german.numer,svm,0.74,-1
+german.numer,Adding,0.8,200
+german.numer,Adding (prop),0.78,200
+german.numer,perceptron,0.48,-1
+german.numer,svm,0.32,-1
+german.numer,Adding,0.8,200
+german.numer,Adding (prop),0.77,200
+german.numer,perceptron,0.62,-1
+german.numer,svm,0.38,-1
+german.numer,Adding,0.75,200
+german.numer,Adding (prop),0.71,200
+german.numer,perceptron,0.76,-1
+german.numer,svm,0.71,-1
+phishing,Adding,0.9416553595658074,200
+phishing,Adding (prop),0.9416553595658074,200
+phishing,perceptron,0.8109452736318408,-1
+phishing,svm,0.9416553595658074,-1
+phishing,Adding,0.9407507914970602,300
+phishing,Adding (prop),0.9412030755314338,300
+phishing,perceptron,0.911352329262777,-1
+phishing,svm,0.9425599276345545,-1
+phishing,Adding,0.9389416553595658,300
+phishing,Adding (prop),0.9389416553595658,300
+phishing,perceptron,0.9285391225689733,-1
+phishing,svm,0.9412030755314338,-1
+phishing,Adding,0.9430122116689281,200
+phishing,Adding (prop),0.942107643600181,200
+phishing,perceptron,0.9339665309814563,-1
+phishing,svm,0.9425599276345545,-1
+skin_nonskin,Adding,0.8973924753121685,200
+skin_nonskin,Adding (prop),0.899718436301314,200
+skin_nonskin,perceptron,0.9293234309964906,-1
+skin_nonskin,svm,0.9151840365624745,-1
+skin_nonskin,Adding,0.9105321145841835,200
+skin_nonskin,Adding (prop),0.9085530074267526,200
+skin_nonskin,perceptron,0.9357300252999265,-1
+skin_nonskin,svm,0.9207541010364808,-1
+ijcnn,Adding,0.9237412896260673,200
+ijcnn,Adding (prop),0.9235340945027862,200
+ijcnn,perceptron,0.897318458904483,-1
+ijcnn,svm,0.9178307761093117,-1
+ijcnn,Adding,0.9220292036073762,300
+ijcnn,Adding (prop),0.9219528685619568,300
+ijcnn,perceptron,0.897318458904483,-1
+ijcnn,svm,0.9178307761093117,-1
+ijcnn,Adding,0.9234686644638553,200
+ijcnn,Adding (prop),0.9232941843600397,200
+ijcnn,perceptron,0.897318458904483,-1
+ijcnn,svm,0.9178307761093117,-1
+cod RNA,Adding,0.8900547462051345,200
+cod RNA,Adding (prop),0.8900400195864029,200
+cod RNA,perceptron,0.6846957296487334,-1
+cod RNA,svm,0.9319777480790967,-1
+cod RNA,Adding,0.8897049890102607,200
+cod RNA,Adding (prop),0.8896902623915293,200
+cod RNA,perceptron,0.6846957296487334,-1
+cod RNA,svm,0.920737656332262,-1
+IMDB,Adding,0.8764750590023601,10
+IMDB,Adding (prop),0.8769150766030641,10
+IMDB,perceptron,0.8492739709588384,-1
+IMDB,svm,0.8525941037641506,-1
+IMDB,Adding,0.8774350974038961,10
+IMDB,Adding (prop),0.8776751070042802,10
+IMDB,perceptron,0.8492739709588384,-1
+IMDB,svm,0.8524340973638945,-1
+skin_nonskin,Adding,0.8866196033624418,300
+skin_nonskin,Adding (prop),0.8863339590304415,300
+skin_nonskin,perceptron,0.9169387088876194,-1
+skin_nonskin,svm,0.7877662613237575,-1
+covtype,Adding,0.6051806114326284,300
+covtype,Adding (prop),0.6043394074998386,300
+covtype,perceptron,0.5051526430154256,-1
+covtype,svm,0.5581269766141004,-1
+IMDB,Adding,0.8817952718108725,200
+IMDB,Adding (prop),0.8817952718108725,200
+IMDB,perceptron,0.8492739709588384,-1
+IMDB,svm,0.8524340973638945,-1
