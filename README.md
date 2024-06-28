@@ -1,3 +1,7 @@
 ## A new kind of perceptron!
 
-The main code is in `adding.ipynb`. Links to donwload the data are in that file.
+Links to download the data are in `src/scratch.py`
+
+Name your data folder `./data/`
+
+Be sure it's in the top level dir, not inside `./src/`
