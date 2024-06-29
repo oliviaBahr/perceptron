@@ -1,11 +1,49 @@
 from typing import Tuple
+from scipy.sparse import spmatrix
+from functools import lru_cache
 from itertools import cycle
 from codetiming import Timer
-from numpy import ndarray, array_split, unique, zeros
-from scipy.sparse import spmatrix
+from numpy import ndarray, array_split, unique, zeros, array
 from sklearn.linear_model import Perceptron as skPerc
 from sklearn.metrics import accuracy_score
 from sklearn.utils import shuffle
+from sklearn.datasets import load_svmlight_file
+from sklearn.feature_extraction import DictVectorizer
+from sklearn.model_selection import train_test_split
+
+
+class Loader:
+    @classmethod
+    def split(data, test_size=0.2) -> tuple[tuple, tuple]:
+        X, tX, y, ty = train_test_split(data[0], data[1], test_size=test_size)
+        return (X, y), (tX, ty)
+
+    @classmethod
+    @lru_cache
+    def load_svm(pathname) -> tuple[spmatrix, ndarray]:
+        return load_svmlight_file(pathname)
+    
+    @classmethod
+    @lru_cache
+    def load_imdb_binary(pathname):
+        lines = [line.strip().split() for line in open(pathname)]
+        X, y = [], []
+
+        # funcs to make features and classes binary
+        featfunc = lambda x: 1 if x > 0 else 0
+        classfunc = lambda x: 1 if x > 4 else 0
+        
+        for line in lines:
+            # classes
+            y.append(classfunc(int(line.pop(0))))
+            
+            # features
+            feats = [itm.split(":") for itm in line]
+            X.append({int(i): featfunc(float(v)) for i, v in feats})
+        
+        vectorizer = DictVectorizer()
+        X = vectorizer.fit_transform(X)
+        return X, array(y)  
 
 
 class Perceptron:
