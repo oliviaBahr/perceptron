@@ -1,4 +1,5 @@
 import warnings
+import csv
 import matplotlib.pyplot as plt
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from typing import Tuple, Literal, Iterator
@@ -54,9 +55,10 @@ class Loader:
 
 
 class Perceptron:
-    def __init__(self, dataset_name: str, traindata: Tuple[spmatrix | ndarray], testdata: Tuple[spmatrix | ndarray]) -> None:
-        # base sklearn perceptron
+    def __init__(self, dataset_name: str, traindata: Tuple[spmatrix | ndarray], testdata: Tuple[spmatrix | ndarray], outfile="training_runs.csv") -> None:
+        # recording
         self.base = skPerc()
+        self.outfile = outfile
 
         # data
         self.X, self.y = traindata
@@ -87,7 +89,7 @@ class Perceptron:
     def test(self) -> float:
         return accuracy_score(self.ty, self.base.predict(self.tX))
 
-    def train(self, ensemble_size=50, epoch_size=1.0, data_opts: Literal["partial", "cycle", "window"]=None, log=True) -> None:
+    def train(self, ensemble_size=50, epoch_size=1.0, data_opts: Literal["partial", "cycle", "window", "whole"]="whole", log=True) -> None:
         """
         Trains the perceptron model.
 
@@ -100,13 +102,16 @@ class Perceptron:
 
             data_opts (Literal["partial", "cycle", "window"], optional):
                 The data sampling option.
+                `"whole"`: Uses the entire training dataset in each epoch.
                 `"partial"`: Uses a partial subset of the training data in each epoch.
                 `"cycle"`: Cycles through different subsets of the training data in each epoch.
                 `"window"`: Uses a sliding window approach to sample the training data in each epoch.
-                `None`: Uses the entire training dataset in each epoch.
 
             log (bool, optional):
                 Whether to log the accuracy during training. Defaults to True.
+            
+            outfile (str, optional):
+                The file to save the results to. Defaults to "results.csv".
 
         Returns:
             None
@@ -119,7 +124,7 @@ class Perceptron:
             split_size = round(epoch_size*self.train_size)
             n_splits = round(1/epoch_size)
             match data_opts:
-                case None:
+                case "whole":
                     return cycle([(X, y)])
                 case "partial":
                     return cycle([(X[:split_size], y[:split_size])])
@@ -157,11 +162,18 @@ class Perceptron:
         self.data_opts = data_opts
         self.train_time = Timer().last
 
+        # write results
+        with open(self.outfile, "a", newline="") as f:
+            # dataset, max_acc, last_acc, ensemble_size, epoch_size, data_opts, train_time, all_accs
+            writer = csv.writer(f)
+            writer.writerow([self.dataset_name, max(self.accuracies), self.accuracies[-1], self.ensemble_size, self.epoch_size, self.data_opts, self.train_time, self.accuracies])
+
     def plot(self):
         plt.plot(self.accuracies)
         plt.title(f"{self.dataset_name}")
         plt.xlabel("Ensemble Size")
         plt.ylabel("Accuracy")
+        plt.ylim(.5, 1)
         plt.show()
 
 if __name__ == "__main__":
