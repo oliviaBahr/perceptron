@@ -1,7 +1,8 @@
 import warnings
 import csv
 import matplotlib.pyplot as plt
-from typing import Tuple, Literal, Iterator
+from concurrent.futures import ProcessPoolExecutor, as_completed, ThreadPoolExecutor
+from typing import Tuple, Literal, Iterator, Generator
 from scipy.sparse import spmatrix
 from functools import lru_cache
 from itertools import cycle
@@ -128,15 +129,27 @@ class Perceptron:
         data = self.data_generator() # infinite data according to data_opts
         self.base.fit(*next(data)) # initial fit to set up base perceptron
         
-        for _ in range(ensemble_size - 1):
-            new_perc = skPerc(max_iter=1).fit(*next(data))
-            self.add_weights(new_perc)
+        for weak_learner in self.train_ensemble_parallel(data):
+            self.add_weights(weak_learner)
             self.test_and_record()
             if log: print(self.accuracies[-1])
 
         # record time and write to csv
         self.train_time = float(f"{self.timer.stop():.2f}")
         if write: self.write_results(outfile)
+    
+    def train_ensemble_parallel(self, data) -> Generator[skPerc, None, None]:
+        with ThreadPoolExecutor() as executor:
+            futures = []
+            for _ in range(self.ensemble_size - 1):
+                futures.append(executor.submit(skPerc(max_iter=1).fit, *next(data)))
+
+            for future in as_completed(futures):
+                yield future.result()
+
+    def train_ensemble_sequential(self, data) -> Generator[skPerc, None, None]:
+        for _ in range(self.ensemble_size - 1):
+            yield skPerc(max_iter=1).fit(*next(data))
 
     def add_weights(self, new: skPerc) -> None:
         self.base.coef_ = self.base.coef_ + new.coef_
