@@ -1,7 +1,6 @@
 import warnings
 import csv
 import matplotlib.pyplot as plt
-from concurrent.futures import ProcessPoolExecutor, as_completed
 from typing import Tuple, Literal, Iterator
 from scipy.sparse import spmatrix
 from functools import lru_cache
@@ -56,9 +55,9 @@ class Loader:
 
 class Perceptron:
     def __init__(self, dataset_name: str, traindata: Tuple[spmatrix | ndarray], testdata: Tuple[spmatrix | ndarray], outfile="training_runs.csv") -> None:
-        # recording
+        # base perceptron to track summed weights
         self.base = skPerc()
-        self.outfile = outfile
+        self.timer = Timer()
 
         # data
         self.X, self.y = traindata
@@ -79,91 +78,94 @@ class Perceptron:
         self.data_opts = None
         self.train_time = None
 
-    
-    def reset_base(self) -> None:
+    def reset(self) -> None:
         self.base = skPerc()
-        self.base.coef_ = zeros((self.n_weights, self.n_features))
-        self.base.intercept_ = zeros(self.n_weights)
         self.accuracies = []
 
-    def test(self) -> float:
-        return accuracy_score(self.ty, self.base.predict(self.tX))
-
-    def train(self, ensemble_size=50, epoch_size=1.0, data_opts: Literal["partial", "cycle", "window", "whole"]="whole", log=True) -> None:
+    def train(self, ensemble_size=50, epoch_size=1.0, data_opts: Literal["partial", "cycle", "window", "whole"]="whole", log=True, write=True, outfile="training_runs.csv") -> None:
         """
         Trains the perceptron model.
 
-        Args:
-            ensemble_size (int, optional):
-                The number of weak learners in the ensemble. Defaults to 50.
+        ### Args:
+            `ensemble_size (int, optional)`:
+                The number of weak learners in the ensemble. Defaults to `50`.
 
-            epoch_size (float, optional):
-                The fraction of the training data to use in each epoch. Defaults to 1.0.
+            `epoch_size (float, optional)`:
+                The fraction of the training data to use in each epoch. Defaults to `1.0`.
 
-            data_opts (Literal["partial", "cycle", "window"], optional):
-                The data sampling option.
+            `data_opts (Literal["partial", "cycle", "window"], optional)`:
+                The data sampling option. Defaults to `"whole"`.
                 `"whole"`: Uses the entire training dataset in each epoch.
                 `"partial"`: Uses a partial subset of the training data in each epoch.
                 `"cycle"`: Cycles through different subsets of the training data in each epoch.
                 `"window"`: Uses a sliding window approach to sample the training data in each epoch.
 
-            log (bool, optional):
-                Whether to log the accuracy during training. Defaults to True.
+            `log (bool, optional)`:
+                Whether to log the accuracy during training. Defaults to `True`.
             
-            outfile (str, optional):
-                The file to save the results to. Defaults to "results.csv".
+            `write (bool, optional)`:
+                Whether to write the results to a file. Defaults to `True`.
+            
+            `outfile (str, optional)`:
+                The file to save the results to. Defaults to `"training_runs.csv"`.
 
-        Returns:
-            None
+        ### Returns:
+            `None`
         """
         assert (epoch_size > 0), "epoch_size must be greater than 0"
         assert (ensemble_size > 0 and isinstance(ensemble_size, int)), "ensemble_size must be a positive integer"
+        assert (data_opts in ["partial", "cycle", "window", "whole"]), "data_opts must be one of 'partial', 'cycle', 'window', or 'whole'"
         
-        def data_generator() -> Iterator:
-            X, y = shuffle(self.X, self.y)
-            split_size = round(epoch_size*self.train_size)
-            n_splits = round(1/epoch_size)
-            match data_opts:
-                case "whole":
-                    return cycle([(X, y)])
-                case "partial":
-                    return cycle([(X[:split_size], y[:split_size])])
-                case "cycle":
-                    X_groups = array_split(X, n_splits)
-                    y_groups = array_split(y, n_splits)
-                    return cycle(zip(X_groups, y_groups))
-                case "window":
-                    ratio = (self.train_size-split_size) / ensemble_size
-                    data = zip(cycle(X), cycle(y))
-                    return windowed(data, n=split_size, step=(1 if ratio<1 else int(ratio)))
-        
-        def train_weak_learner(X, y) -> skPerc:
-            return skPerc(max_iter=1).fit(X, y)
-        
-        def update_weights(new: skPerc) -> Tuple[ndarray, ndarray]:
-            self.base.coef_ = self.base.coef_ + new.coef_
-            self.base.intercept_ = self.base.intercept_ + new.intercept_
-
-        ## TRAINING
-        with Timer():
-            self.reset_base()
-            data = data_generator()
-            self.base.fit(*next(data))
-            
-            for _ in range(ensemble_size - 1):
-                new_perc = train_weak_learner(*next(data))
-                update_weights(new_perc)
-                self.accuracies.append(self.test())
-                if log: print(self.accuracies[-1])
-
         # record
         self.epoch_size = epoch_size
         self.ensemble_size = ensemble_size
         self.data_opts = data_opts
-        self.train_time = Timer().last
+        self.train_time = -1  # incomplete
 
-        # write results
-        with open(self.outfile, "a", newline="") as f:
+        ## TRAINING
+        self.timer.start()
+        self.reset()
+        data = self.data_generator() # infinite data according to data_opts
+        self.base.fit(*next(data)) # initial fit to set up base perceptron
+        
+        for _ in range(ensemble_size - 1):
+            new_perc = skPerc(max_iter=1).fit(*next(data))
+            self.add_weights(new_perc)
+            self.test_and_record()
+            if log: print(self.accuracies[-1])
+
+        # record time and write to csv
+        self.train_time = float(f"{self.timer.stop():.2f}")
+        if write: self.write_results(outfile)
+
+    def add_weights(self, new: skPerc) -> None:
+        self.base.coef_ = self.base.coef_ + new.coef_
+        self.base.intercept_ = self.base.intercept_ + new.intercept_    
+
+    def data_generator(self) -> Iterator:
+        X, y = shuffle(self.X, self.y)
+        split_size = round(self.epoch_size*self.train_size)
+        n_splits = round(1/self.epoch_size)
+        match self.data_opts:
+            case "whole":
+                return cycle([(X, y)])
+            case "partial":
+                return cycle([(X[:split_size], y[:split_size])])
+            case "cycle":
+                X_groups = array_split(X, n_splits)
+                y_groups = array_split(y, n_splits)
+                return cycle(zip(X_groups, y_groups))
+            case "window":
+                ratio = (self.train_size-split_size) / self.ensemble_size
+                data = zip(cycle(X), cycle(y))
+                return windowed(data, n=split_size, step=(1 if ratio<1 else int(ratio)))
+    
+    def test_and_record(self) -> float:
+        acc = accuracy_score(self.ty, self.base.predict(self.tX))
+        self.accuracies.append(acc)
+
+    def write_results(self, outfile) -> None:
+        with open(outfile, "a") as f:
             # dataset, max_acc, last_acc, ensemble_size, epoch_size, data_opts, train_time, all_accs
             writer = csv.writer(f)
             writer.writerow([self.dataset_name, max(self.accuracies), self.accuracies[-1], self.ensemble_size, self.epoch_size, self.data_opts, self.train_time, self.accuracies])
@@ -175,6 +177,7 @@ class Perceptron:
         plt.ylabel("Accuracy")
         plt.ylim(.5, 1)
         plt.show()
+
 
 if __name__ == "__main__":
     ... 
