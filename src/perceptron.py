@@ -83,7 +83,7 @@ class Perceptron:
         self.base = skPerc()
         self.accuracies = []
 
-    def train(self, ensemble_size=50, epoch_size=1.0, data_opts: Literal["partial", "cycle", "window", "whole"]="whole", log=True, write=True, outfile="training_runs.csv") -> None:
+    def train(self, ensemble_size=50, epoch_size=1.0, data_opts: Literal["partial", "cycle", "window"]=None, log=True, write=True, outfile="training_runs.csv") -> None:
         """
         Trains the perceptron model.
 
@@ -115,8 +115,8 @@ class Perceptron:
         """
         assert (epoch_size > 0), "epoch_size must be greater than 0"
         assert (ensemble_size > 0 and isinstance(ensemble_size, int)), "ensemble_size must be a positive integer"
-        assert (data_opts in ["partial", "cycle", "window", "whole"]), "data_opts must be one of 'partial', 'cycle', 'window', or 'whole'"
-        
+        assert (epoch_size >= 1 or data_opts in ["partial", "cycle", "window"]), "data_opts must be 'partial', 'cycle', or 'window' if epoch_size < 1"
+
         # record
         self.epoch_size = epoch_size
         self.ensemble_size = ensemble_size
@@ -160,7 +160,7 @@ class Perceptron:
         split_size = round(self.epoch_size*self.train_size)
         n_splits = round(1/self.epoch_size)
         match self.data_opts:
-            case "whole":
+            case None:
                 return cycle([(X, y)])
             case "partial":
                 return cycle([(X[:split_size], y[:split_size])])
@@ -172,6 +172,8 @@ class Perceptron:
                 ratio = (self.train_size-split_size) / self.ensemble_size
                 data = zip(cycle(X), cycle(y))
                 return windowed(data, n=split_size, step=(1 if ratio<1 else int(ratio)))
+            case _:
+                raise ValueError("data_opts must be 'partial', 'cycle', 'window', or None")
     
     def test_and_record(self) -> float:
         acc = accuracy_score(self.ty, self.base.predict(self.tX))
