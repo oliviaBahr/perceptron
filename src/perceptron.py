@@ -167,7 +167,8 @@ class Perceptron:
 
     def data_generator(self) -> Iterator:
         X, y = shuffle(self.X, self.y)
-        split_size = round(self.epoch_size*self.train_size)
+        train_size = self.train_size
+        split_size = round(self.epoch_size*train_size)
         n_splits = round(1/self.epoch_size)
         match self.data_opts:
             case None:
@@ -175,13 +176,24 @@ class Perceptron:
             case "partial":
                 return cycle([(X[:split_size], y[:split_size])])
             case "cycle":
-                X_groups = array_split(X, n_splits)
+                X_groups = array_split(X.A, n_splits)
                 y_groups = array_split(y, n_splits)
                 return cycle(zip(X_groups, y_groups))
             case "window":
-                ratio = (self.train_size-split_size) / self.ensemble_size
-                data = zip(cycle(X), cycle(y))
-                return windowed(data, n=split_size, step=(1 if ratio<1 else int(ratio)))
+                def tuple_window(split_size, step) -> Generator[tuple, None, None]:
+                    while True:
+                        for i in range(0, train_size, step):
+                            end = i + split_size
+                            if end <= train_size:
+                                Xwin = X[i:end]
+                                ywin = y[i:end]
+                            else:
+                                Xwin = X[i:] + X[:end-train_size]
+                                ywin = y[i:] + y[:end-train_size]
+                            yield (Xwin, ywin)
+                                
+                ratio = (train_size-split_size)/self.ensemble_size
+                return tuple_window(split_size, step=round(ratio) if ratio >= 1 else 1)
             case _:
                 raise ValueError("data_opts must be 'partial', 'cycle', 'window', or None")
     
