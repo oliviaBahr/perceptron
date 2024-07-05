@@ -33,25 +33,35 @@ class Loader:
     
     @staticmethod
     @lru_cache
-    def load_imdb_binary(pathname):
-        lines = [line.strip().split() for line in open(pathname)]
-        X, y = [], []
+    def load_imdb_binary(trainpath, testpath) -> tuple[spmatrix, ndarray]:
+        X, y, tX, ty = [], [], [], []
 
         # funcs to make features and classes binary
         featfunc = lambda x: 1 if x > 0 else 0
         classfunc = lambda x: 1 if x > 4 else 0
         
-        for line in lines:
+        for line in open(trainpath):
+            line = line.strip().split()
             # classes
             y.append(classfunc(int(line.pop(0))))
             
             # features
             feats = [itm.split(":") for itm in line]
             X.append({int(i): featfunc(float(v)) for i, v in feats})
+
+        for line in open(testpath):
+            line = line.strip().split()
+            # classes
+            ty.append(classfunc(int(line.pop(0))))
+            
+            # features
+            feats = [itm.split(":") for itm in line]
+            tX.append({int(i): featfunc(float(v)) for i, v in feats})
         
         vectorizer = DictVectorizer()
         X = vectorizer.fit_transform(X)
-        return X, array(y)  
+        tX = vectorizer.transform(tX)
+        return (X, y), (tX, y)
 
 
 class Perceptron:
