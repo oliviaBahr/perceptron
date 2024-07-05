@@ -70,14 +70,14 @@ class Loader:
 
 
 class Perceptron:
-    def __init__(self, trainpath, testpath=None, test_size=None, outfile="training_runs.csv") -> None:
+    def __init__(self, trainpath, testpath=None, test_size=None, dataset_name=None, outfile="training_runs.csv") -> None:
         # base perceptron to track summed weights
         self.base = skPerc()
         self.timer = Timer()
 
         # data
-        self.dataset_name = Loader.get_name(trainpath)
-        if "imdb" in self.dataset_name:
+        self.dataset_name = dataset_name if dataset_name else Loader.get_name(trainpath)
+        if "imdb" in self.dataset_name.lower():
             traindata, testdata = Loader.load_imdb_binary(trainpath, testpath)
         else:
             traindata, testdata = Loader.load(trainpath, testpath, test_size)
