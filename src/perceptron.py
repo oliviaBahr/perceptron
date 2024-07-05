@@ -22,15 +22,17 @@ warnings.filterwarnings("ignore", category=ConvergenceWarning)
 
 class Loader:
     @staticmethod
-    def split(data, test_size=0.2) -> tuple[tuple, tuple]:
+    @lru_cache
+    def load(pathname) -> tuple[spmatrix, ndarray]:
+        return load_svmlight_file(pathname)
+    
+    @staticmethod
+    @lru_cache
+    def load_split(path, test_size=0.2) -> tuple[tuple, tuple]:
+        data = load_svmlight_file(path)
         X, tX, y, ty = train_test_split(data[0], data[1], test_size=test_size)
         return (X, y), (tX, ty)
 
-    @staticmethod
-    @lru_cache
-    def load_svm(pathname) -> tuple[spmatrix, ndarray]:
-        return load_svmlight_file(pathname)
-    
     @staticmethod
     @lru_cache
     def load_imdb_binary(trainpath, testpath) -> tuple[spmatrix, ndarray]:
