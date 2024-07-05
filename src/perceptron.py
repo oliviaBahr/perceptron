@@ -22,16 +22,18 @@ warnings.filterwarnings("ignore", category=ConvergenceWarning)
 
 class Loader:
     @staticmethod
-    @lru_cache
-    def load(pathname) -> tuple[spmatrix, ndarray]:
-        return load_svmlight_file(pathname)
-    
+    def get_name(pathname) -> str:
+        return pathname.split("/")[-2].lower()
+
     @staticmethod
     @lru_cache
-    def load_split(path, test_size=0.2) -> tuple[tuple, tuple]:
-        data = load_svmlight_file(path)
-        X, tX, y, ty = train_test_split(data[0], data[1], test_size=test_size)
-        return (X, y), (tX, ty)
+    def load(path1, path2=None, test_size=None) -> tuple[spmatrix, ndarray]:
+        if path2:
+            return load_svmlight_file(path1), load_svmlight_file(path2)
+        else:
+            data = load_svmlight_file(path1)
+            X, tX, y, ty = train_test_split(data[0], data[1], test_size=test_size)
+            return (X, y), (tX, ty)
 
     @staticmethod
     @lru_cache
@@ -67,17 +69,21 @@ class Loader:
 
 
 class Perceptron:
-    def __init__(self, dataset_name: str, traindata: Tuple[spmatrix | ndarray], testdata: Tuple[spmatrix | ndarray], outfile="training_runs.csv") -> None:
+    def __init__(self, trainpath, testpath=None, test_size=None, outfile="training_runs.csv") -> None:
         # base perceptron to track summed weights
         self.base = skPerc()
         self.timer = Timer()
 
         # data
+        self.dataset_name = Loader.get_name(trainpath)
+        if 'imdb' in self.dataset_name:
+            traindata, testdata = Loader.load_imdb_binary(trainpath, testpath)
+        else:
+            traindata, testdata = Loader.load(trainpath, testpath, test_size)
         self.X, self.y = traindata
         self.tX, self.ty = testdata
 
         # dataset info
-        self.dataset_name = dataset_name
         self.train_size = self.X.shape[0]
         self.test_size = self.tX.shape[0]
         self.n_classes = len(unique(self.y))
