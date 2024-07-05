@@ -44,12 +44,12 @@ class Loader:
         # funcs to make features and classes binary
         featfunc = lambda x: 1 if x > 0 else 0
         classfunc = lambda x: 1 if x > 4 else 0
-        
+
         for line in open(trainpath):
             line = line.strip().split()
             # classes
             y.append(classfunc(int(line.pop(0))))
-            
+
             # features
             feats = [itm.split(":") for itm in line]
             X.append({int(i): featfunc(float(v)) for i, v in feats})
@@ -58,11 +58,11 @@ class Loader:
             line = line.strip().split()
             # classes
             ty.append(classfunc(int(line.pop(0))))
-            
+
             # features
             feats = [itm.split(":") for itm in line]
             tX.append({int(i): featfunc(float(v)) for i, v in feats})
-        
+
         vectorizer = DictVectorizer()
         X = vectorizer.fit_transform(X)
         tX = vectorizer.transform(tX)
@@ -77,7 +77,7 @@ class Perceptron:
 
         # data
         self.dataset_name = Loader.get_name(trainpath)
-        if 'imdb' in self.dataset_name:
+        if "imdb" in self.dataset_name:
             traindata, testdata = Loader.load_imdb_binary(trainpath, testpath)
         else:
             traindata, testdata = Loader.load(trainpath, testpath, test_size)
@@ -102,7 +102,15 @@ class Perceptron:
         self.base = skPerc()
         self.accuracies = []
 
-    def train(self, ensemble_size=50, epoch_size=1.0, data_opts: Literal["partial", "cycle", "window"]=None, log=True, write=True, outfile="training_runs.csv") -> None:
+    def train(
+        self,
+        ensemble_size=50,
+        epoch_size=1.0,
+        data_opts: Literal["partial", "cycle", "window"] = None,
+        log=True,
+        write=True,
+        outfile="training_runs.csv",
+    ) -> None:
         """
         Trains the perceptron model.
 
@@ -122,19 +130,19 @@ class Perceptron:
 
             `log (bool, optional)`:
                 Whether to log the accuracy during training. Defaults to `True`.
-            
+
             `write (bool, optional)`:
                 Whether to write the results to a file. Defaults to `True`.
-            
+
             `outfile (str, optional)`:
                 The file to save the results to. Defaults to `"training_runs.csv"`.
 
         ### Returns:
             `None`
         """
-        assert (epoch_size > 0), "epoch_size must be greater than 0"
-        assert (ensemble_size > 0 and isinstance(ensemble_size, int)), "ensemble_size must be a positive integer"
-        assert (epoch_size >= 1 or data_opts in ["partial", "cycle", "window"]), "data_opts must be 'partial', 'cycle', or 'window' if epoch_size < 1"
+        assert epoch_size > 0, "epoch_size must be greater than 0"
+        assert ensemble_size > 0 and isinstance(ensemble_size, int), "ensemble_size must be a positive integer"
+        assert epoch_size >= 1 or data_opts in ["partial", "cycle", "window"], "data_opts must be 'partial', 'cycle', or 'window' if epoch_size < 1"
 
         # record
         self.epoch_size = epoch_size
@@ -145,18 +153,22 @@ class Perceptron:
         ## TRAINING
         self.timer.start()
         self.reset()
-        data = self.data_generator() # infinite data according to data_opts
-        self.base.fit(*next(data)) # initial fit to set up base perceptron
-        
+        data = self.data_generator()  # infinite data according to data_opts
+        self.base.fit(*next(data))  # initial fit to set up base perceptron
+
         for weak_learner in self.train_ensemble_parallel(data):
             self.add_weights(weak_learner)
             self.test_and_record()
-            if log: print(self.accuracies[-1])
+            if log:
+                print(self.accuracies[-1])
 
         # record time and write to csv
         self.train_time = float(f"{self.timer.stop():.2f}")
-        if write: self.write_results(outfile)
-    
+        if write:
+            self.write_results(outfile)
+        if log:
+            self.print_info()
+
     def train_ensemble_parallel(self, data) -> Generator[skPerc, None, None]:
         with ThreadPoolExecutor() as executor:
             futures = []
@@ -172,13 +184,13 @@ class Perceptron:
 
     def add_weights(self, new: skPerc) -> None:
         self.base.coef_ = self.base.coef_ + new.coef_
-        self.base.intercept_ = self.base.intercept_ + new.intercept_    
+        self.base.intercept_ = self.base.intercept_ + new.intercept_
 
     def data_generator(self) -> Iterator:
         X, y = shuffle(self.X, self.y)
         train_size = self.train_size
-        split_size = round(self.epoch_size*train_size)
-        n_splits = round(1/self.epoch_size)
+        split_size = round(self.epoch_size * train_size)
+        n_splits = round(1 / self.epoch_size)
         match self.data_opts:
             case None:
                 return cycle([(X, y)])
@@ -189,23 +201,24 @@ class Perceptron:
                 y_groups = array_split(y, n_splits)
                 return cycle(zip(X_groups, y_groups))
             case "window":
-                def tuple_window(split_size, step) -> Generator[tuple, None, None]:
-                    while True:
-                        for i in range(0, train_size, step):
-                            end = i + split_size
-                            if end <= train_size:
-                                Xwin = X[i:end]
-                                ywin = y[i:end]
-                            else:
-                                Xwin = X[i:] + X[:end-train_size]
-                                ywin = y[i:] + y[:end-train_size]
-                            yield (Xwin, ywin)
-                                
-                ratio = (train_size-split_size)/self.ensemble_size
-                return tuple_window(split_size, step=round(ratio) if ratio >= 1 else 1)
+                ratio = (train_size - split_size) / self.ensemble_size
+                step_size = round(ratio) if ratio >= 1 else 1
+
+                def tuple_window(split, step) -> Generator[tuple, None, None]:
+                    for i in cycle(range(0, train_size, step)):
+                        end = i + split
+                        if end <= train_size:
+                            Xwin = X[i:end]
+                            ywin = y[i:end]
+                        else:
+                            Xwin = X[i:] + X[: end - train_size]
+                            ywin = y[i:] + y[: end - train_size]
+                        yield (Xwin, ywin)
+
+                return tuple_window(split_size, step_size)
             case _:
                 raise ValueError("data_opts must be 'partial', 'cycle', 'window', or None")
-    
+
     def test_and_record(self) -> float:
         acc = accuracy_score(self.ty, self.base.predict(self.tX))
         self.accuracies.append(acc)
@@ -215,18 +228,53 @@ class Perceptron:
             writer = csv.writer(f)
             # write header if file is empty
             if os.path.getsize(outfile) == 0:
-                header = ['dataset', 'max_acc', 'last_acc', 'ensemble_size', 'epoch_size', 'data_opts', 'train_time', 'all_accs']
+                header = ["dataset", "max_acc", "last_acc", "ensemble_size", "epoch_size", "data_opts", "train_time", "all_accs"]
                 writer.writerow(header)
             writer.writerow([self.dataset_name, max(self.accuracies), self.accuracies[-1], self.ensemble_size, self.epoch_size, self.data_opts, self.train_time, self.accuracies])
+
+    def print_info(self) -> None:
+        data = {
+            "DATASET": [
+                ("Dataset", self.dataset_name),
+                ("Train size", self.train_size),
+                ("Test size", self.test_size),
+                ("Classes", self.n_classes),
+                ("Features", self.n_features),
+            ],
+            "RUN INFO": [
+                ("Ensemble", self.ensemble_size),
+                ("Epoch size", self.epoch_size),
+                ("Data opts", self.data_opts),
+                ("Train time", self.train_time_str()),
+                ("Max at", self.accuracies.index(max(self.accuracies)) + 1),
+                ("Max acc", f"{max(self.accuracies):.4f}"),
+                ("Final acc", f"{self.accuracies[-1]:.4f}"),
+            ],
+        }
+        for section, info in data.items():
+            print(f"\n{section:-^20}")
+            for k, v in info:
+                print(f"{k+':':<12}{v}")
+
+    def train_time_str(self) -> str:
+        if self.train_time < 0:
+            return "Incomplete"
+        elif self.train_time < 60:
+            return f"{self.train_time}s"
+        else:
+            hours, rem = divmod(self.train_time, 3600)
+            mins, secs = divmod(rem, 60)
+            hours = f"{hours}h " if hours > 0 else ""
+            return f"{hours}{mins}m {secs}s"
 
     def plot(self):
         plt.plot(self.accuracies)
         plt.title(f"{self.dataset_name}")
         plt.xlabel("Ensemble Size")
         plt.ylabel("Accuracy")
-        plt.ylim(.5, 1)
+        plt.ylim(0.5, 1)
         plt.show()
 
 
 if __name__ == "__main__":
-    ... 
+    ...
