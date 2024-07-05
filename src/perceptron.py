@@ -1,5 +1,6 @@
 import warnings
 import csv
+import os
 import matplotlib.pyplot as plt
 from concurrent.futures import ProcessPoolExecutor, as_completed, ThreadPoolExecutor
 from typing import Tuple, Literal, Iterator, Generator
@@ -211,8 +212,11 @@ class Perceptron:
 
     def write_results(self, outfile) -> None:
         with open(outfile, "a") as f:
-            # dataset, max_acc, last_acc, ensemble_size, epoch_size, data_opts, train_time, all_accs
             writer = csv.writer(f)
+            # write header if file is empty
+            if os.path.getsize(outfile) == 0:
+                header = ['dataset', 'max_acc', 'last_acc', 'ensemble_size', 'epoch_size', 'data_opts', 'train_time', 'all_accs']
+                writer.writerow(header)
             writer.writerow([self.dataset_name, max(self.accuracies), self.accuracies[-1], self.ensemble_size, self.epoch_size, self.data_opts, self.train_time, self.accuracies])
 
     def plot(self):
