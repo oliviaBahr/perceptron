@@ -1,13 +1,11 @@
 import warnings, csv, os
 from contextlib import contextmanager
-import matplotlib.pyplot as plt
 from typing import Literal, Iterator, Generator, Annotated
 from pydantic import validate_call, Field
 from scipy.sparse import spmatrix
 from concurrent.futures import as_completed, ThreadPoolExecutor
 from functools import lru_cache
 from itertools import cycle
-from codetiming import Timer
 from numpy import ndarray, array_split, unique
 from sklearn.linear_model import Perceptron as skPerc
 from sklearn.utils import shuffle
@@ -15,6 +13,10 @@ from sklearn.datasets import load_svmlight_file
 from sklearn.feature_extraction import DictVectorizer
 from sklearn.model_selection import train_test_split
 from sklearn.exceptions import ConvergenceWarning
+import matplotlib.pyplot as plt
+from codetiming import Timer
+from yaspin import yaspin
+from yaspin.spinners import Spinners
 
 warnings.filterwarnings("ignore", category=ConvergenceWarning)
 
@@ -115,7 +117,13 @@ class Perceptron:
 
         # log
         if self.log != "none":
-            print(f"Training on {self.dataset_name}...")
+            print(f"Training {self.ensemble_size} learners on {self.dataset_name}...")
+
+        # start spinner
+        spinner = yaspin()
+        if self.log not in ["all", "none"]:
+            spinner.spinner = Spinners.balloon2
+            spinner.start()
 
         # start timer
         timer = Timer(logger=None)
@@ -125,9 +133,10 @@ class Perceptron:
             yield  # the code inside the with block
 
         finally:
-            # stop timer
+            # stop timer and spinner
             dur = timer.stop()
             self.train_time = float(f"{dur:.2f}")
+            spinner.stop()
 
             # write to csv
             if self.write:
@@ -136,7 +145,10 @@ class Perceptron:
             # log info
             if self.log != "none":
                 print(f"Training time: {self.train_time_str()}")
-                self.print_info()
+                if self.log == "min":
+                    print(f"Max acc: {max(self.accuracies):.4f}\n")
+                else:
+                    self.print_info()
 
     # TRAINING
     @validate_call
@@ -145,7 +157,7 @@ class Perceptron:
         ensemble_size: Annotated[int, Field(gt=0)] = 50,
         epoch_size: Annotated[float, Field(gt=0, le=1)] = 1.0,
         data_opts: Literal["partial", "cycle", "window", "whole"] = "whole",
-        log: Literal["all", "min", "none"] = "all",
+        log: Literal["all", "mid", "min", "none"] = "mid",
         write: bool = True,
         outfile: str = "training_runs.csv",
     ) -> None:
