@@ -33,7 +33,7 @@ class Loader:
             return load_svmlight_file(path1), load_svmlight_file(path2)
         else:
             data = load_svmlight_file(path1)
-            X, tX, y, ty = train_test_split(data[0], data[1], test_size=test_size)
+            X, tX, y, ty = train_test_split(data[0], data[1], test_size=test_size, random_state=0)
             return (X, y), (tX, ty)
 
     @staticmethod
