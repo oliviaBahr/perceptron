@@ -74,6 +74,24 @@ class Loader:
 
 class Perceptron:
     def __init__(self, trainpath, testpath=None, test_size=None, dataset_name=None) -> None:
+        """
+        Initializes the Perceptron model.
+        Provide one path for all the data or two paths for separate training and test data.
+
+        ### Parameters
+
+        trainpath (str):
+            The path to the training data (or all the data if there is no testdata).
+
+        testpath (str):
+            The path to the test data. Optional if all the data is in one file.
+
+        test_size (float):
+            The fraction of the data to use as test data if there is no testpath. 0.2 by default.
+
+        dataset_name (str):
+            The name of the dataset. If not provided, it is inferred from the trainpath.
+        """
         # base perceptron to store weights
         self.base = None
 
