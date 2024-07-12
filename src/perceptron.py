@@ -28,13 +28,15 @@ class Loader:
 
     @staticmethod
     @lru_cache
-    def load(path1, path2=None, test_size=None) -> tuple[spmatrix, ndarray]:
-        if path2:
-            return load_svmlight_file(path1), load_svmlight_file(path2)
-        else:
-            data = load_svmlight_file(path1)
-            X, tX, y, ty = train_test_split(data[0], data[1], test_size=test_size, random_state=0)
-            return (X, y), (tX, ty)
+    def load(path1, path2) -> tuple[spmatrix, ndarray]:
+        return load_svmlight_file(path1), load_svmlight_file(path2)
+
+    @staticmethod
+    @lru_cache
+    def load_split(path1, test_size=None) -> tuple[spmatrix, ndarray]:
+        data = load_svmlight_file(path1)
+        X, tX, y, ty = train_test_split(data[0], data[1], test_size=test_size, random_state=0)
+        return (X, y), (tX, ty)
 
     @staticmethod
     @lru_cache
@@ -72,14 +74,17 @@ class Loader:
 class Perceptron:
     def __init__(self, trainpath, testpath=None, test_size=None, dataset_name=None) -> None:
         # base perceptron to store weights
-        self.base = skPerc(max_iter=1)
+        self.base = None
 
         # data
         self.dataset_name = dataset_name if dataset_name else Loader.get_name(trainpath)
         if "imdb" in self.dataset_name.lower():
             traindata, testdata = Loader.load_imdb_binary(trainpath, testpath)
+        elif testpath:
+            traindata, testdata = Loader.load(trainpath, testpath)
         else:
-            traindata, testdata = Loader.load(trainpath, testpath, test_size)
+            traindata, testdata = Loader.load_split(trainpath, test_size)
+
         self.X, self.y = traindata
         self.tX, self.ty = testdata
 
