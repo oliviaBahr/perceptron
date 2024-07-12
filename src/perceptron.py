@@ -110,34 +110,44 @@ class Perceptron:
     # wraps the training
     @contextmanager
     def _training_context(self, train_opts: dict):
-        # set opts as object attributes ("data_opts", "ensemble_size", etc.)
-        del train_opts["self"]
-        for key, value in train_opts.items():
-            if hasattr(self, key):
-                setattr(self, key, value)
-
-        # reset base perceptron and accuracies
-        self.base = skPerc(max_iter=1)
-        self.accuracies = []
-
-        # log
-        if self.log != "none":
-            print(f"Training {self.ensemble_size} learners on {self.dataset_name}...")
-
-        # start spinner
-        spinner = yaspin()
-        if self.log not in ["all", "none"]:
-            spinner.spinner = Spinners.balloon2
-            spinner.start()
-
-        # start timer
-        timer = Timer(logger=None)
-        timer.start()
-
         try:
-            yield  # the code inside the with block
+            # reset base perceptron and accuracies
+            self.base = skPerc(max_iter=1).fit(self.X, self.y)  # fit to get the right shapes for coef_ and intercept_
+            self.base.coef_.fill(1)
+            self.base.intercept_.fill(0)
+            self.accuracies = []
 
-        finally:
+            # set opts as object attributes ("data_opts", "ensemble_size", etc.)
+            del train_opts["self"]
+            for key, value in train_opts.items():
+                if hasattr(self, key):
+                    setattr(self, key, value)
+
+            # log
+            if self.log != "none":
+                print(f"Training {self.ensemble_size} learners on {self.dataset_name} ({self.data_opts}, {self.epoch_size})...")
+
+            # start spinner
+            spinner = yaspin()
+            if self.log not in ["all", "none"]:
+                spinner.spinner = Spinners.balloon2
+                spinner.start()
+
+            # start timer
+            timer = Timer(logger=None)
+            timer.start()
+
+            # the code inside the with block
+            yield
+
+        except Exception as e:
+            self.train_time = -1
+            timer.stop()
+            spinner.stop()
+            print(f"Training failed :(")
+            raise  # re-raise the exception
+
+        else:  # runs on success
             # stop timer and spinner
             dur = timer.stop()
             self.train_time = float(f"{dur:.2f}")
@@ -200,8 +210,8 @@ class Perceptron:
         """
 
         with self._training_context(locals()):  # set training options and start timer
-            data = self._data_generator()  # infinite data according to data_opts
-            self.base.fit(*next(data))  # initial fit to set up base perceptron
+            # infinite data according to data_opts
+            data = self._data_generator()
 
             # loop over ensemble of perceptrons trained for one epoch each
             for weak_learner in self._train_ensemble_parallel(data):  # swap the training function for parallel or sequential
@@ -213,15 +223,18 @@ class Perceptron:
     def _train_ensemble_parallel(self, data) -> Generator[skPerc, None, None]:
         with ThreadPoolExecutor() as executor:
             futures = []
-            for _ in range(self.ensemble_size - 1):
-                futures.append(executor.submit(skPerc(max_iter=1).fit, *next(data)))
+            for _ in range(self.ensemble_size):
+                futures.append(executor.submit(self._train_weak_learner, *next(data)))
 
             for future in as_completed(futures):
                 yield future.result()
 
     def _train_ensemble_sequential(self, data) -> Generator[skPerc, None, None]:
-        for _ in range(self.ensemble_size - 1):
-            yield skPerc(max_iter=1).fit(*next(data))
+        for _ in range(self.ensemble_size):
+            yield self._train_weak_learner(*next(data))
+
+    def _train_weak_learner(self, X, y) -> skPerc:
+        return skPerc().partial_fit(X, y, classes=self.base.classes_)
 
     def _add_weights(self, new: skPerc) -> None:
         self.base.coef_ = self.base.coef_ + new.coef_
