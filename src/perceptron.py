@@ -7,7 +7,7 @@ from scipy.sparse import spmatrix, csr_matrix, vstack, hstack
 from concurrent.futures import as_completed, ThreadPoolExecutor
 from functools import lru_cache
 from itertools import cycle
-from numpy import ndarray, unique
+from numpy import ndarray, unique, array_equal
 from sklearn.linear_model import Perceptron as skPerc
 from sklearn.utils import shuffle
 from sklearn.datasets import load_svmlight_file
@@ -116,24 +116,74 @@ class Perceptron:
         self.n_features = self.X.shape[1]
         self.n_weights = 1 if self.n_classes == 2 else self.n_classes
 
-        # training run info
-        self.accuracy = None
+        # training run info and trackers
         self.test_accs = None
         self.dev_accs = None
         self.epoch_size = None
         self.ensemble_size = None
         self.data_opts = None
         self.train_time = None
+        self.stop_threshold = None
+        self.pocket_best = None
 
         # logging and writing options
         self.outfile = None
         self.write = None
         self.log = None
 
-    def test(self) -> float:
-        """Tests the model and returns the accuracy."""
-        acc = self.base.score(self.tX, self.ty)
-        return float(f"{acc:.5f}")
+    ## READ-ONLY PROPERTIES
+    @property
+    def accuracy(self, last_call: list[list] = ["x"]) -> float:
+        assert self.base, "self.base is None. Cannot get accuracy from an untrained model."
+
+        # use python's weird default arg behavior with mutable datatypes as a cache to avoid recalculating accuracy
+        if last_call and array_equal(self.base.intercept_, last_call[0][0]):
+            return last_call[0][1]
+
+        acc = round(self.base.score(self.tX, self.ty), 7)  # test
+        last_call[0] = [self.base.intercept_, acc]  # cache
+        return acc
+
+    @property
+    def accuracy_string(self) -> str:
+        return f"{self.accuracy:.2%}"
+
+    @property
+    def dev_accuracy(self) -> float:
+        assert self.base, "self.base is None. Cannot get accuracy from an untrained model."
+        return self.base.score(self.devX, self.devy)
+
+    @property
+    def n_iters_no_change(self) -> int:
+        if not self.dev_accs:
+            return 0
+        return self.dev_accs[::-1].index(max(self.dev_accs))
+
+    @property
+    def n_iters(self) -> int:
+        return len(self.dev_accs)
+
+    @property
+    def dev_max_at(self) -> int:
+        return self.dev_accs.index(max(self.dev_accs)) + 1
+
+    @property
+    def test_max_at(self) -> int:
+        return self.test_accs.index(max(self.test_accs)) + 1
+
+    @property
+    def train_time_string(self) -> str:
+        if self.train_time < 0:
+            return "Incomplete"
+        elif self.train_time < 10:
+            return f"{self.train_time:.2f}s"
+        elif self.train_time < 60:
+            return f"{round(self.train_time)}s"
+        else:
+            hours, rem = divmod(self.train_time, 3600)
+            mins, secs = divmod(rem, 60)
+            hours = f"{round(hours)}h " if hours > 0 else ""
+            return f"{hours}{round(mins)}m {round(secs)}s"
 
     # wraps the training
     @contextmanager
@@ -143,7 +193,6 @@ class Perceptron:
             self.base = skPerc(max_iter=1).fit(self.X, self.y)  # fit to get the right shapes for coef_ and intercept_
             self.base.coef_.fill(1)
             self.base.intercept_.fill(0)
-            self.accuracy = 0
             self.test_accs = []
             self.dev_accs = []
 
@@ -155,7 +204,7 @@ class Perceptron:
 
             # log
             if self.log != "none":
-                print(f"Training {self.ensemble_size} learners on {self.dataset_name} ({self.data_opts}, {self.epoch_size})...")
+                print(f"\nTraining {self.ensemble_size} learners on {self.dataset_name} ({self.data_opts}, {self.epoch_size})...")
 
             # start spinner
             spinner = yaspin()
@@ -183,24 +232,39 @@ class Perceptron:
             self.train_time = float(f"{dur:.2f}")
             spinner.stop()
 
-            # set final info
-            self.accuracy = self.test()
-
             # write to csv
             if self.write:
                 self._write_results(self.outfile)
 
             # log info
             if self.log != "none":
-                print(f"Training time: {self.train_time_str()}")
+                print(f"Training time: {self.train_time_string}")
                 if self.log == "min":
-                    if len(self.dev_accs) < self.ensemble_size:
-                        print(f"Stopped early at ensemble size {len(self.dev_accs)}")
-                    print(f"Accuracy: {self.accuracy}\n")
+                    if self.n_iters < self.ensemble_size:
+                        print(f"Stopped early at ensemble size {self.n_iters}")
+                    print(f"Accuracy: {self.accuracy_string}\n")
                 else:
                     self.print_info()
         finally:
             spinner.stop()
+
+    # tracks best weights and stops training
+    def _pocket_stop(self) -> bool:
+        assert self.n_iters > 0, "self.n_iters must be > 0.\nNo training has been done, why are you trying to stop?"
+
+        # track pocket_best weights
+        if self.n_iters == 1 or self.dev_accs[-1] > max(self.dev_accs[:-1]):
+            self.pocket_best = [self.base.coef_, self.base.intercept_]
+
+        # early stopping
+        reached_ensemble_size = lambda: self.n_iters >= self.ensemble_size
+        reached_stop_threshold = lambda: not self.stop_threshold < 1 and self.n_iters_no_change >= self.stop_threshold
+
+        if reached_stop_threshold() or reached_ensemble_size():
+            self.base.coef_, self.base.intercept_ = self.pocket_best
+            return True
+        else:
+            return False
 
     # TRAINING
     @validate_call
@@ -252,10 +316,6 @@ class Perceptron:
         """
 
         with self._training_context(locals()):  # set training options and start timer
-            # early stopping trackers
-            best = [self.base.coef_, self.base.intercept_]
-            n_iter_no_change = 0
-
             # infinite data according to data_opts
             data = self._data_generator()
 
@@ -263,37 +323,29 @@ class Perceptron:
             for weak_learner in self._train_ensemble_parallel(data):  # swap the training function for parallel or sequential
                 self._add_weights(weak_learner)  # add weights of new weak learner
                 self._test_and_record()  # get acc of updated ensemble
+
                 if self.log == "all":
                     print(self.dev_accs[-1])
 
-                # pocket early stopping
-                if stop_threshold > 0 and len(self.dev_accs) > 1:
-                    if self.dev_accs[-1] > max(self.dev_accs[:-1]):
-                        n_iter_no_change = 0
-                        best = [self.base.coef_, self.base.intercept_]
-                    elif n_iter_no_change < stop_threshold:
-                        n_iter_no_change += 1
-                    else:
-                        self.base.coef_, self.base.intercept_ = best
-                        break
+                if self._pocket_stop():
+                    break
 
     def _test_and_record(self) -> float:
-        dev = self.base.score(self.devX, self.devy)
-        test = self.base.score(self.tX, self.ty)
-        self.dev_accs.append(dev)
-        self.test_accs.append(test)
+        self.dev_accs.append(self.dev_accuracy)
+        self.test_accs.append(self.accuracy)
 
     def _train_ensemble_parallel(self, data) -> Generator[skPerc, None, None]:
         with ThreadPoolExecutor() as executor:
-            futures = []
-            for _ in range(self.ensemble_size):
-                futures.append(executor.submit(self._train_weak_learner, *next(data)))
+            while True:
+                futures = []
+                for _ in range(5):  # submit 5 at a time to accomidate early stopping
+                    futures.append(executor.submit(self._train_weak_learner, *next(data)))
 
-            for future in as_completed(futures):
-                yield future.result()
+                for future in as_completed(futures):
+                    yield future.result()
 
     def _train_ensemble_sequential(self, data) -> Generator[skPerc, None, None]:
-        for _ in range(self.ensemble_size):
+        while True:
             yield self._train_weak_learner(*next(data))
 
     def _train_weak_learner(self, X, y) -> skPerc:
@@ -344,7 +396,13 @@ class Perceptron:
                         windows.append((Xwin, ywin))
                     else:
                         Xwin = vstack([X[i:], X[: end - self.train_size]])
-                        ywin = hstack([y[i:], y[: end - self.train_size]]).T.toarray()
+                        try:
+                            ywin = y[i:] + y[: end - self.train_size]
+                        except:
+                            try:
+                                ywin = hstack([y[i:], y[: end - self.train_size]]).T.toarray()
+                            except:
+                                ywin = hstack([y[i:], y[: end - self.train_size]])
                         windows.append((Xwin, ywin))
 
                 return cycle(windows)
@@ -356,14 +414,14 @@ class Perceptron:
         with open(outfile, "a") as f:
             data = {
                 "dataset": self.dataset_name,
-                "accuracy": float(f"{self.accuracy:.5f}"),
+                "accuracy": self.accuracy,
                 "ensemble_size": self.ensemble_size,
                 "epoch_size": self.epoch_size,
                 "data_option": self.data_opts,
                 "train_time": self.train_time,
-                "dev_max_at": self.dev_accs.index(max(self.dev_accs)) + 1,
-                "test_max_at": self.test_accs.index(max(self.test_accs)) + 1,
-                "num_iters": len(self.dev_accs),
+                "dev_max_at": self.dev_max_at,
+                "test_max_at": self.test_max_at,
+                "num_iters": self.n_iters,
                 "test_accs": self.test_accs,
                 "dev_accs": self.dev_accs,
             }
@@ -384,12 +442,12 @@ class Perceptron:
             ],
             "RUN INFO": [
                 ("Ensemble", self.ensemble_size),
-                ("Stopped at", len(self.dev_accs)),
+                ("Stopped at", self.n_iters),
                 ("Epoch size", self.epoch_size),
                 ("Data opts", self.data_opts),
-                ("Train time", self.train_time_str()),
-                ("Max at", self.dev_accs.index(max(self.dev_accs)) + 1),
-                ("Accuracy", self.accuracy),
+                ("Train time", self.train_time_string),
+                ("Max at", self.dev_max_at),
+                ("Accuracy", self.accuracy_string),
             ],
         }
         # loop over data and print
@@ -398,19 +456,6 @@ class Perceptron:
                 print(f"\n{section:-^20}")
                 for k, v in info:
                     print(f"{k+':':<12}{v}")
-
-    def train_time_str(self) -> str:
-        if self.train_time < 0:
-            return "Incomplete"
-        elif self.train_time < 10:
-            return f"{self.train_time:.2f}s"
-        elif self.train_time < 60:
-            return f"{round(self.train_time)}s"
-        else:
-            hours, rem = divmod(self.train_time, 3600)
-            mins, secs = divmod(rem, 60)
-            hours = f"{round(hours)}h " if hours > 0 else ""
-            return f"{hours}{round(mins)}m {round(secs)}s"
 
     def plot(self):
         plt.plot(self.dev_accs)
@@ -423,7 +468,7 @@ class Perceptron:
 
         # info box
         props = dict(boxstyle="round", facecolor="gray", alpha=0.5)
-        textstr = f"Test Acc: {self.accuracy}\nMax at: {self.dev_accs.index(max(self.dev_accs)) + 1}"
+        textstr = f"Test Acc: {self.accuracy}\nMax at: {self.dev_max_at}"
         plt.text(0.75, 1.15, textstr, transform=plt.gca().transAxes, fontsize=12, verticalalignment="top", bbox=props)
 
         plt.show()
