@@ -249,12 +249,16 @@ class Perceptron:
                 split_size = round(self.epoch_size * self.train_size)
                 return cycle([(X[:split_size], y[:split_size])])
             case "cycle":
+                if self.epoch_size > 0.5:
+                    print("Warning: epoch_size > 0.5 for 'cycle' is equivalent to 'whole'.")
+                    print("Setting epoch_size to 1.0")
+                    self.epoch_size = 1.0
                 n_splits = round(1 / self.epoch_size)
                 X_groups = array_split(X.A, n_splits)
                 y_groups = array_split(y, n_splits)
                 return cycle(zip(X_groups, y_groups))
             case "window":
-                split_size = round(self.epoch_size * self.train_size)
+                split_size = max(1, round(self.epoch_size * self.train_size))
                 ratio = (self.train_size - split_size) / self.ensemble_size
                 step = round(ratio) if ratio >= 1 else 1
 
