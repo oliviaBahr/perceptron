@@ -384,13 +384,15 @@ class Perceptron:
     def train_time_str(self) -> str:
         if self.train_time < 0:
             return "Incomplete"
+        elif self.train_time < 10:
+            return f"{self.train_time:.2f}s"
         elif self.train_time < 60:
-            return f"{self.train_time}s"
+            return f"{round(self.train_time)}s"
         else:
             hours, rem = divmod(self.train_time, 3600)
             mins, secs = divmod(rem, 60)
-            hours = f"{hours}h " if hours > 0 else ""
-            return f"{hours}{mins}m {secs}s"
+            hours = f"{round(hours)}h " if hours > 0 else ""
+            return f"{hours}{round(mins)}m {round(secs)}s"
 
     def plot(self):
         plt.plot(self.dev_accs)
