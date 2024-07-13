@@ -246,6 +246,62 @@ class Perceptron:
         finally:
             spinner.stop()
 
+    # yields the data for training
+    def _data_generator(self) -> Iterator:
+        X, y = shuffle(self.X, self.y)
+        match self.data_opts:
+            case "whole":
+                return cycle([(X, y)])
+
+            case "partial":
+                split_size = round(self.epoch_size * self.train_size)
+                X_part, y_part = X[:split_size], y[:split_size]
+                return cycle([(X_part, y_part)])
+
+            case "cycle":
+                if self.epoch_size > 0.5:
+                    print("\nWarning: epoch_size > 0.5 for 'cycle' is equivalent to 'whole'.")
+                    print("Setting epoch_size to 1.0 and data_opts to 'whole'")
+                    self.epoch_size = 1.0
+                    self.data_opts = "whole"
+
+                split_size = round(max(1, self.epoch_size * self.train_size))
+                groups = []
+
+                for i in range(0, self.train_size, split_size):
+                    end = i + split_size
+                    if end <= self.train_size:
+                        groups.append((X[i:end], y[i:end]))
+
+                return cycle(groups)
+
+            case "window":
+                split_size = round(max(1, (self.epoch_size * self.train_size)))
+                step = round(max(1, (self.train_size - split_size) / self.ensemble_size))
+                windows = []
+
+                for i in range(0, self.train_size, step):
+                    end = i + split_size
+                    if end <= self.train_size:
+                        Xwin = X[i:end]
+                        ywin = y[i:end]
+                        windows.append((Xwin, ywin))
+                    else:
+                        Xwin = vstack([X[i:], X[: end - self.train_size]])
+                        try:
+                            ywin = y[i:] + y[: end - self.train_size]
+                        except:
+                            try:
+                                ywin = hstack([y[i:], y[: end - self.train_size]]).T.toarray()
+                            except:
+                                ywin = hstack([y[i:], y[: end - self.train_size]])
+                        windows.append((Xwin, ywin))
+
+                return cycle(windows)
+
+            case _:
+                raise ValueError("data_opts must be 'partial', 'cycle', 'window', or 'whole'")
+
     # tracks best weights and stops training
     def _pocket_stop(self) -> bool:
         assert self.n_iters > 0, "self.n_iters must be > 0.\nNo training has been done, why are you trying to stop?"
@@ -352,61 +408,6 @@ class Perceptron:
     def _add_weights(self, new: skPerc) -> None:
         self.base.coef_ = self.base.coef_ + new.coef_
         self.base.intercept_ = self.base.intercept_ + new.intercept_
-
-    def _data_generator(self) -> Iterator:
-        X, y = shuffle(self.X, self.y)
-        match self.data_opts:
-            case "whole":
-                return cycle([(X, y)])
-
-            case "partial":
-                split_size = round(self.epoch_size * self.train_size)
-                X_part, y_part = X[:split_size], y[:split_size]
-                return cycle([(X_part, y_part)])
-
-            case "cycle":
-                if self.epoch_size > 0.5:
-                    print("\nWarning: epoch_size > 0.5 for 'cycle' is equivalent to 'whole'.")
-                    print("Setting epoch_size to 1.0 and data_opts to 'whole'")
-                    self.epoch_size = 1.0
-                    self.data_opts = "whole"
-
-                split_size = round(max(1, self.epoch_size * self.train_size))
-                groups = []
-
-                for i in range(0, self.train_size, split_size):
-                    end = i + split_size
-                    if end <= self.train_size:
-                        groups.append((X[i:end], y[i:end]))
-
-                return cycle(groups)
-
-            case "window":
-                split_size = round(max(1, (self.epoch_size * self.train_size)))
-                step = round(max(1, (self.train_size - split_size) / self.ensemble_size))
-                windows = []
-
-                for i in range(0, self.train_size, step):
-                    end = i + split_size
-                    if end <= self.train_size:
-                        Xwin = X[i:end]
-                        ywin = y[i:end]
-                        windows.append((Xwin, ywin))
-                    else:
-                        Xwin = vstack([X[i:], X[: end - self.train_size]])
-                        try:
-                            ywin = y[i:] + y[: end - self.train_size]
-                        except:
-                            try:
-                                ywin = hstack([y[i:], y[: end - self.train_size]]).T.toarray()
-                            except:
-                                ywin = hstack([y[i:], y[: end - self.train_size]])
-                        windows.append((Xwin, ywin))
-
-                return cycle(windows)
-
-            case _:
-                raise ValueError("data_opts must be 'partial', 'cycle', 'window', or 'whole'")
 
     def _write_results(self, outfile) -> None:
         with open(outfile, "a") as f:
