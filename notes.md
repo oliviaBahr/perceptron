@@ -1,4 +1,1 @@
-# TODOs
-- [ ] Convert to PyTorch
-- [ ] Pull out data loading code as independent module
-- [ ] Create experiment scripts and run on cluster
+[Notes here](https://docs.google.com/document/d/1vmdD5R2zhFCvxWgiEwAm9HjjZSU2hLMQdv1rGh9IQM4/edit)
