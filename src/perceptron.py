@@ -74,7 +74,7 @@ class Loader:
         vectorizer = DictVectorizer()
         X = vectorizer.fit_transform(X)
         tX = vectorizer.transform(tX)
-        return (X, y), (tX, y)
+        return (X, y), (tX, ty)
 
 
 class Perceptron:
