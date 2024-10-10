@@ -25,24 +25,38 @@ def start(n_runs, classifiers, data_paths):
                 run[f"{clf_name}/acc"].append(accuracy_score(ty, clf.predict(tX)))
                 run[f"{clf_name}/iters"].append(clf.n_iter_)
 
-        run.wait()
-        scores = [run[f"{clf_name}/acc"].fetch_values().value.tolist() for clf_name, _ in classifiers]
-
-        fig = plot(classifiers, data_name, scores)
+        fig = variance_plots(run, classifiers, data_name)
         run["variance_plot"].upload(fig)
         run.stop()
 
 
-def plot(classifiers, data_name, scores) -> plt.Figure:
+def variance_plots(run, classifiers, data_name) -> plt.Figure:
+    run.wait()
     clf_names = [name for name, _ in classifiers]
+
+    scores = [run[f"{clf_name}/acc"].fetch_values().value.tolist() for clf_name in clf_names]
     scores = np.array(scores).T
 
-    fig, ax = plt.subplots()
-    ax.violinplot(scores, showmeans=True)
-    ax.set_xticks(np.arange(1, len(clf_names) + 1))
-    ax.set_xticklabels(clf_names)
-    ax.set_ylabel("Accuracy")
-    ax.set_title(data_name)
+    iter_counts = [run[f"{clf_name}/iters"].fetch_values().value.tolist() for clf_name in clf_names]
+    iter_counts = np.array(iter_counts).T
+
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
+    fig.suptitle(data_name)
+
+    ax1.violinplot(scores, showmeans=True)
+    ax1.set_xticks(np.arange(1, len(clf_names) + 1))
+    ax1.set_xticklabels(clf_names)
+    ax1.set_ylabel("Accuracy")
+
+    ax2.set_xticks(np.arange(1, len(clf_names) + 1))
+    ax2.set_xticklabels(clf_names)
+    ax2.set_ylabel("Iterations")
+    parts = ax2.violinplot(iter_counts, showmeans=True)
+    _ = [pc.set_facecolor("red") for pc in parts["bodies"]]
+    _ = [parts[bar].set_color("red") for bar in ["cmaxes", "cmins", "cbars", "cmeans"]]
+
+    fig.tight_layout()
+    plt.show()
     return fig
 
 
@@ -52,8 +66,8 @@ if __name__ == "__main__":
         ("add_perc", addperceptron.AddPerceptron),
         ("sgd", SGDClassifier),
         ("add_sgd", addsgdclassifier.AddSGDClassifier),
-        ("mlp", MLPClassifier),
-        ("add_mlp", addmlpclassifier.AddMLPClassifier),
+        # ("mlp", MLPClassifier),
+        # ("add_mlp", addmlpclassifier.AddMLPClassifier),
     ]
 
     DATA_PATHS = [
