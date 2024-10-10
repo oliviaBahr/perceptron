@@ -13,10 +13,7 @@ class AddMLPClassifier:
         kwargs["max_iter"] = 1
         self.epoch_size = kwargs.pop("epoch_size", 1.0)
         self.clf = MLPClassifier(**kwargs)
-
-    @property
-    def n_iter_(self):
-        return self.clf.n_iter_
+        self.n_iter_ = 0
 
     def _shuffler(self, X, y):
         """Resample part of data if epoch_size < 1.0."""
@@ -31,6 +28,7 @@ class AddMLPClassifier:
             clfp.fit(*self._shuffler(X, y))
             self.clf.coefs_ += clfp.coefs_
             self.clf.intercepts_ += clfp.intercepts_
+            self.n_iter_ += 1
 
     def predict(self, X):
         return self.clf.predict(X)
