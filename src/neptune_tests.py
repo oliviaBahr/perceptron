@@ -5,7 +5,7 @@ from sklearn.utils import shuffle
 import addperceptron, addmlpclassifier, addsgdclassifier
 from sklearn.linear_model import Perceptron, SGDClassifier
 from sklearn.neural_network import MLPClassifier
-from perceptron import Loader
+from loader import Loader
 from tqdm import trange
 
 
