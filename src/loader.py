@@ -13,7 +13,7 @@ class Loader:
 
     @staticmethod
     @lru_cache
-    def load(trainpath, testpath=None, test_size=None) -> tuple[spmatrix, ndarray]:
+    def load(trainpath, testpath=None, test_size=None) -> tuple[tuple, tuple]:
         if "imdb" in trainpath.lower():
             return Loader.load_imdb_binary(trainpath, testpath)
         elif not testpath:
@@ -23,14 +23,14 @@ class Loader:
 
     @staticmethod
     @lru_cache
-    def load_split(trainpath, test_size=None) -> tuple[spmatrix, ndarray]:
+    def load_split(trainpath, test_size=None) -> tuple[tuple, tuple]:
         data = load_svmlight_file(trainpath)
         X, tX, y, ty = train_test_split(data[0], data[1], test_size=test_size, random_state=0)
         return (X, y), (tX, ty)
 
     @staticmethod
     @lru_cache
-    def load_imdb_binary(trainpath, testpath) -> tuple[spmatrix, ndarray]:
+    def load_imdb_binary(trainpath, testpath) -> tuple[tuple, tuple]:
         X, y, tX, ty = [], [], [], []
 
         # funcs to make features and classes binary
