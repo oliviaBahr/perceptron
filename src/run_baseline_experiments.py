@@ -9,6 +9,7 @@ from sklearn.neural_network import MLPClassifier
 from loader import Loader
 from tqdm import trange
 
+
 MODEL_TYPE = Literal['perc', 'add_perc', 'svm', 'add_svm', 'lr', 'add_lr', 'mlp', 'add_mlp']
 CLASSIFIERS: dict[MODEL_TYPE, tuple[Any, dict[str, str | None]]] = {
     "perc": (Perceptron, {}),
@@ -41,11 +42,6 @@ def run_experiment(
     ModelClass, kwargs = CLASSIFIERS[model_type]
 
     for _ in trange(n_runs, desc="Running experiments"):
-        # run = neptune.init_run(project="adding-perceptron/baseline-comparison", dependencies="infer")
-        # run["params"] = {
-        #     "dataset": dataset_name,
-        #     "model_type": model_type,
-        # }
         experiment = comet_ml.Experiment(
           project_name="baselines",
           workspace="perceptrons",
@@ -68,38 +64,7 @@ def run_experiment(
         experiment.test()
         experiment.log_metric("accuracy", model.score(tX, ty))
         experiment.log_metric("iterations", model.n_iter_)
-
-        # fig = variance_plots(run, classifiers, data_name)
-        # run["variance_plot"].upload(fig)
         experiment.end()
-
-
-# def variance_plots(run, classifiers: dict, data_name) -> plt.Figure:
-#     run.wait()  # wait for neptune data to sync
-
-#     scores = [run[f"{clf_name}/acc"].fetch_values().value.tolist() for clf_name in classifiers]
-#     scores = np.array(scores).T
-
-#     iter_counts = [run[f"{clf_name}/iters"].fetch_values().value.tolist() for clf_name in classifiers]
-#     iter_counts = np.array(iter_counts).T
-
-#     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 10))
-#     fig.suptitle(data_name)
-
-#     ax1.violinplot(scores, showmeans=True)
-#     ax1.set_xticks(np.arange(1, len(classifiers) + 1))
-#     ax1.set_xticklabels(classifiers.keys())
-#     ax1.set_ylabel("Accuracy")
-
-#     ax2.set_xticks(np.arange(1, len(classifiers) + 1))
-#     ax2.set_xticklabels(classifiers.keys())
-#     ax2.set_ylabel("Iterations")
-#     parts = ax2.violinplot(iter_counts, showmeans=True)
-#     _ = [pc.set_facecolor("red") for pc in parts["bodies"]]
-#     _ = [parts[bar].set_color("red") for bar in ["cmaxes", "cmins", "cbars", "cmeans"]]
-
-#     fig.tight_layout()
-#     return fig
 
 
 if __name__ == "__main__":
