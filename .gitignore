@@ -1,2 +1,5 @@
-data
 __pycache__
+.neptune
+data/rcv
+.zed
+.cometml-runs
