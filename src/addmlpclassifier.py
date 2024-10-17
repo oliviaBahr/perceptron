@@ -1,3 +1,5 @@
+from sys import setdlopenflags
+from comet_ml import Experiment
 from sklearn.neural_network import MLPClassifier
 from sklearn.utils import resample
 import random
@@ -32,17 +34,28 @@ class AddMLPClassifier:
             return True
         return False
 
-    def fit(self, X, y):
+    def fit(self, X, y, experiment: Experiment | None = None):
         self.clf.fit(*self._shuffler(X, y))
         self.scores.append(self.clf.score(X, y))
+        (summed_coefs, summed_intercepts) = self.clf.coefs_, self.clf.intercepts_
 
-        for _ in range(self.max_iter - 1):
+        for learner_index in range(self.max_iter - 1):
             clfp = MLPClassifier(hidden_layer_sizes=self.hidden_layer_sizes, max_iter=1, random_state=random.randint(0, 100000000))
             clfp.fit(*self._shuffler(X, y))
-            self.clf.coefs_ += clfp.coefs_
-            self.clf.intercepts_ += clfp.intercepts_
-            self.scores.append(self.clf.score(X, y))
+
+            # Average weights
+            summed_coefs = [prev_weights + new_weights for prev_weights, new_weights in zip(summed_coefs, clfp.coefs_)]
+            summed_intercepts = [prev_weights + new_weights for prev_weights, new_weights in zip(summed_intercepts, clfp.intercepts_)]
+            self.clf.coefs_ = [w / (learner_index + 2) for w in summed_coefs]
+            self.clf.intercepts_ = [w / (learner_index + 2) for w in summed_intercepts]
+
+            # Rescore method
+            score = self.clf.score(X, y)
+            self.scores.append(score)
+            if experiment is not None:
+                experiment.log_metric("accuracy", value=score, step=learner_index)
             self.n_iter_ += 1
+
             if self._early_stop():
                 break
 

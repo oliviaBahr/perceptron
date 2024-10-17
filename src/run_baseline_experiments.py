@@ -57,13 +57,14 @@ def run_experiment(
             "model_type": model_type,
         })
 
-        X, y = shuffle(X, y)
-        model = ModelClass(**kwargs)
-        model.fit(X, y) # TODO: Log the accuracy at each iteration instead of just the ending accuracy
+        with experiment.train():
+            X, y = shuffle(X, y)
+            model = ModelClass(**kwargs)
+            model.fit(X, y, experiment) # TODO: Log the accuracy at each iteration instead of just the ending accuracy
 
-        experiment.test()
-        experiment.log_metric("accuracy", model.score(tX, ty))
-        experiment.log_metric("iterations", model.n_iter_)
+        with experiment.test():
+            experiment.log_metric("accuracy", model.score(tX, ty))
+            experiment.log_metric("iterations", model.n_iter_)
         experiment.end()
 
 
