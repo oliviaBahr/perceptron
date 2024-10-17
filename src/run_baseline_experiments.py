@@ -78,7 +78,7 @@ if __name__ == "__main__":
 
     N_RUNS = 100
     for dataset_name, train_path, test_path in DATA_PATHS:
-        for model_type in ['add_mlp']: # get_args(MODEL_TYPE):
+        for model_type in get_args(MODEL_TYPE):
             print(f"Training {model_type}")
             run_experiment(
                 n_runs=N_RUNS,
