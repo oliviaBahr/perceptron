@@ -57,13 +57,14 @@ def run_experiment(
             "model_type": model_type,
         })
 
-        X, y = shuffle(X, y)
-        model = ModelClass(**kwargs)
-        model.fit(X, y) # TODO: Log the accuracy at each iteration instead of just the ending accuracy
+        with experiment.train():
+            X, y = shuffle(X, y)
+            model = ModelClass(**kwargs)
+            model.fit(X, y, experiment) # TODO: Log the accuracy at each iteration instead of just the ending accuracy
 
-        experiment.test()
-        experiment.log_metric("accuracy", model.score(tX, ty))
-        experiment.log_metric("iterations", model.n_iter_)
+        with experiment.test():
+            experiment.log_metric("accuracy", model.score(tX, ty))
+            experiment.log_metric("iterations", model.n_iter_)
         experiment.end()
 
 
@@ -77,7 +78,7 @@ if __name__ == "__main__":
 
     N_RUNS = 100
     for dataset_name, train_path, test_path in DATA_PATHS:
-        for model_type in get_args(MODEL_TYPE):
+        for model_type in ['add_mlp']: # get_args(MODEL_TYPE):
             print(f"Training {model_type}")
             run_experiment(
                 n_runs=N_RUNS,
