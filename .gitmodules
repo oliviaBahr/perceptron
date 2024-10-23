@@ -1,0 +1,3 @@
+[submodule "fst-distillation"]
+	path = fst-distillation
+	url = https://github.com/michaelpginn/fst-distillation.git
