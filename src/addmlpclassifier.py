@@ -29,7 +29,7 @@ class AddMLPClassifier:
         if len(self.scores) > 1 and self.scores[-1] > max(self.scores[:-1]):
             self.best = self.clf
 
-        if self.scores.index(max(self.scores)) < self.n_iter_ - 5:
+        if self.scores.index(max(self.scores)) < self.n_iter_ - 25:
             self.clf = self.best
             return True
         return False
