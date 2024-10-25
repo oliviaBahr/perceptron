@@ -7,9 +7,10 @@ class AddPerceptron:
 
     def __init__(self, **kwargs):
         """Olivia's additive Perceptron implemented through sklearn."""
-        self.max_iter = kwargs.get("max_iter", 100)  # Store passed max_iter since we rig it to 1
+        self.max_iter = kwargs.get("max_iter", 1) # number of iterations per learner
+        self.num_learners = kwargs.pop("num_learners", 100) # number of (weak) learners
+
         random.seed(a=kwargs.get("random_state", 42))
-        kwargs["max_iter"] = 1
         self.epoch_size = kwargs.pop("epoch_size", 1.0)
         self.clf = Perceptron(**kwargs)
         self.best = self.clf
@@ -31,12 +32,12 @@ class AddPerceptron:
             return True
         return False
 
-    def fit(self, X, y):
+    def fit(self, X, y, *args, **kwargs):
         self.clf.fit(*self._shuffler(X, y))
         self.scores.append(self.clf.score(X, y))
 
-        for _ in range(self.max_iter - 1):
-            clfp = Perceptron(max_iter=1, random_state=random.randint(0, 100000000))
+        for _ in range(self.num_learners - 1):
+            clfp = Perceptron(max_iter=self.max_iter, random_state=random.randint(0, 100000000))
             clfp.fit(*self._shuffler(X, y))
             self.clf.coef_ += clfp.coef_
             self.clf.intercept_ += clfp.intercept_

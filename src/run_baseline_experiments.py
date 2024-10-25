@@ -27,7 +27,8 @@ def run_experiment(
     model_type: MODEL_TYPE,
     dataset_name: str,
     train_path: str,
-    test_path: str
+    test_path: str,
+    model_kwargs: dict[str, str | None] = {},
 ):
     """Runs experiments with a given model and dataset
 
@@ -37,9 +38,11 @@ def run_experiment(
         dataset_name (str): The name of the dataset (for logging purposes)
         train_path (str): Path to the train file
         test_path (str): Path to the test data file
+        model_kwargs (dict[str, str | None]): Additional arguments to pass to the model constructor.
     """
     (X, y), (tX, ty) = Loader.load(train_path, test_path)
     ModelClass, kwargs = CLASSIFIERS[model_type]
+    kwargs.update(model_kwargs)
 
     for _ in trange(n_runs, desc="Running experiments"):
         experiment = comet_ml.Experiment(
@@ -50,7 +53,6 @@ def run_experiment(
           log_git_metadata = False,
           log_git_patch = False,
           log_env_details = False,
-
         )
         experiment.log_parameters({
             "dataset": dataset_name,
