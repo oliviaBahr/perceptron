@@ -1,8 +1,8 @@
-from sys import setdlopenflags
 from comet_ml import Experiment
 from sklearn.neural_network import MLPClassifier
 from sklearn.utils import resample
 import random
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 
 class AddMLPClassifier:
@@ -10,14 +10,14 @@ class AddMLPClassifier:
     def __init__(self, **kwargs):
         """Olivia's additive maneuver implemented for sklearn's MLPClassifier."""
         self.hidden_layer_sizes = kwargs.get("hidden_layer_sizes", (100,))
-        self.max_iter = kwargs.get("max_iter", 100)  # Store passed max_iter since we rig it to 1
+        self.max_iter = kwargs.get("max_iter", 100)  # number of learners
         random.seed(a=kwargs.get("random_state", 42))
         kwargs["max_iter"] = 1
         self.epoch_size = kwargs.pop("epoch_size", 1.0)
         self.clf = MLPClassifier(**kwargs)
         self.best = self.clf
         self.scores = []
-        self.n_iter_ = 1
+        self.n_iter_ = 0
 
     def _shuffler(self, X, y):
         """Resample part of data if epoch_size < 1.0."""
@@ -34,31 +34,44 @@ class AddMLPClassifier:
             return True
         return False
 
+    def _train_one_learner(self, X, y):
+        learner = MLPClassifier(**self.kwargs, max_iter=1, random_state=random.randint(0, 1000000))
+        learner.fit(*self._shuffler(X, y))
+        return learner
+
     def fit(self, X, y, experiment: Experiment | None = None):
         self.clf.fit(*self._shuffler(X, y))
         self.scores.append(self.clf.score(X, y))
-        (summed_coefs, summed_intercepts) = self.clf.coefs_, self.clf.intercepts_
+        self.n_iter_ = 1
 
-        for learner_index in range(self.max_iter - 1):
-            clfp = MLPClassifier(hidden_layer_sizes=self.hidden_layer_sizes, max_iter=1, random_state=random.randint(0, 100000000))
-            clfp.fit(*self._shuffler(X, y))
+        # multiprocessing learners
+        with ProcessPoolExecutor() as executor:
+            futures = [executor.submit(self._train_one_learner, X, y) for _ in range(self.max_iter - 1)]
 
-            # Average weights
-            summed_coefs = [prev_weights + new_weights for prev_weights, new_weights in zip(summed_coefs, clfp.coefs_)]
-            summed_intercepts = [prev_weights + new_weights for prev_weights, new_weights in zip(summed_intercepts, clfp.intercepts_)]
-            self.clf.coefs_ = [w / (learner_index + 2) for w in summed_coefs]
-            self.clf.intercepts_ = [w / (learner_index + 2) for w in summed_intercepts]
+        # average weights
+        for future in as_completed(futures):
+            learner = future.result()
+            iters = self.n_iter_
 
-            # Rescore method
-            score = self.clf.score(X, y)
-            self.scores.append(score)
-            if experiment is not None:
-                experiment.log_metric("accuracy", value=score, step=learner_index)
+            for i, (prev_weights, new_weights) in enumerate(zip(self.clf.coefs_, learner.coefs_)):
+                self.clf.coefs_[i] = (prev_weights * iters + new_weights) / (iters + 1)
+
+            for i, (prev_weights, new_weights) in enumerate(zip(self.clf.intercepts_, learner.intercepts_)):
+                self.clf.intercepts_[i] = (prev_weights * iters + new_weights) / (iters + 1)
+
+            # score
             self.n_iter_ += 1
+            self.scores.append(self.clf.score(X, y))
+
+            # comet logging
+            if experiment is not None:
+                experiment.log_metric("accuracy", value=self.scores[-1], step=self.n_iter_)
 
             if self._early_stop():
+                for f in futures: # Cancel remaining futures
+                    f.cancel()
                 break
-
+    
     def predict(self, X):
         return self.clf.predict(X)
 

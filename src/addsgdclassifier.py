@@ -1,7 +1,7 @@
 from sklearn.linear_model import SGDClassifier
 from sklearn.utils import resample
 import random
-
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 class AddSGDClassifier:
 
@@ -22,7 +22,7 @@ class AddSGDClassifier:
         ADDSGDClassifier(loss = "hinge", penalty = None)
         """
 
-        self.max_iter = kwargs.get("max_iter", 100)  # Store passed max_iter since we rig it to 1
+        self.n_learners = kwargs.get("max_iter", 100)
         kwargs.pop("random_state", None)
         kwargs["max_iter"] = 1
         self.epoch_size = kwargs.pop("epoch_size", 1.0)
@@ -30,7 +30,7 @@ class AddSGDClassifier:
         self.clf = SGDClassifier(**kwargs)
         self.best = self.clf
         self.scores = []
-        self.n_iter_ = 1
+        self.n_iter_ = 0
 
     def _shuffler(self, X, y):
         """Resample part of data if epoch_size < 1.0."""
@@ -47,18 +47,29 @@ class AddSGDClassifier:
             return True
         return False
 
+    def _train_one_learner(self, X, y):
+        learner = SGDClassifier(**self.kwargs, random_state=random.randint(0, 100000000))
+        learner.fit(*self._shuffler(X, y))
+        return learner
+
     def fit(self, X, y):
-        self.clf.fit(*self._shuffler(X, y))
+        self.clf.fit(*self._shuffler(X, y)) 
         self.scores.append(self.clf.score(X, y))
 
-        for _ in range(self.max_iter - 1):
-            clfp = SGDClassifier(random_state=random.randint(0, 100000000), **self.kwargs)
-            clfp.fit(*self._shuffler(X, y))
-            self.clf.coef_ += clfp.coef_
-            self.clf.intercept_ += clfp.intercept_
+        # multiprocessing learners
+        with ProcessPoolExecutor() as executor:
+            futures = [executor.submit(self._train_one_learner, X, y) for _ in range(self.n_learners - 1)]
+        
+        # sum weights
+        for future in as_completed(futures):
+            learner = future.result()
+            self.clf.coef_ += learner.coef_
+            self.clf.intercept_ += learner.intercept_
             self.scores.append(self.clf.score(X, y))
             self.n_iter_ += 1
             if self._early_stop():
+                for future in futures:
+                    future.cancel()
                 break
 
     def predict(self, X):
