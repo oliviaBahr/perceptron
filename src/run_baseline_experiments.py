@@ -1,19 +1,25 @@
 from typing import Any, Literal, get_args
-import numpy as np
-import matplotlib.pyplot as plt
+
 import comet_ml
-from sklearn.utils import shuffle
-import addperceptron, addmlpclassifier, addsgdclassifier
+import matplotlib.pyplot as plt
+import numpy as np
 from sklearn.linear_model import Perceptron, SGDClassifier
 from sklearn.neural_network import MLPClassifier
-from loader import Loader
+from sklearn.utils import shuffle
 from tqdm import trange
 
+import addmlpclassifier
+import addperceptron
+import addsgdclassifier
+from loader import Loader
 
-MODEL_TYPE = Literal['perc', 'add_perc', 'svm', 'add_svm', 'lr', 'add_lr', 'mlp', 'add_mlp']
+MODEL_TYPE = Literal["perc", "add_perc", "svm", "add_svm", "lr", "add_lr", "mlp", "add_mlp"]
 CLASSIFIERS: dict[MODEL_TYPE, tuple[Any, dict[str, str | None]]] = {
     "perc": (Perceptron, {}),
-    "add_perc": (addperceptron.AddPerceptron, {}),
+    "add_perc": (
+        addsgdclassifier.AddSGDClassifier,
+        {"loss": "perceptron", "learning_rate": "constant", "eta0": 1, "penalty": None},
+    ),
     "svm": (SGDClassifier, {"loss": "hinge", "penalty": None}),
     "add_svm": (addsgdclassifier.AddSGDClassifier, {"loss": "hinge", "penalty": None}),
     "lr": (SGDClassifier, {"loss": "log_loss", "penalty": None}),
@@ -22,12 +28,9 @@ CLASSIFIERS: dict[MODEL_TYPE, tuple[Any, dict[str, str | None]]] = {
     "add_mlp": (addmlpclassifier.AddMLPClassifier, {}),
 }
 
+
 def run_experiment(
-    n_runs: int,
-    model_type: MODEL_TYPE,
-    dataset_name: str,
-    train_path: str,
-    test_path: str
+    n_runs: int, model_type: MODEL_TYPE, dataset_name: str, train_path: str, test_path: str
 ):
     """Runs experiments with a given model and dataset
 
@@ -43,24 +46,27 @@ def run_experiment(
 
     for _ in trange(n_runs, desc="Running experiments"):
         experiment = comet_ml.Experiment(
-          project_name="baselines",
-          workspace="perceptrons",
-          log_code = False,
-          log_graph = False,
-          log_git_metadata = False,
-          log_git_patch = False,
-          log_env_details = False,
-
+            project_name="baselines",
+            workspace="perceptrons",
+            log_code=False,
+            log_graph=False,
+            log_git_metadata=False,
+            log_git_patch=False,
+            log_env_details=False,
         )
-        experiment.log_parameters({
-            "dataset": dataset_name,
-            "model_type": model_type,
-        })
+        experiment.log_parameters(
+            {
+                "dataset": dataset_name,
+                "model_type": model_type,
+            }
+        )
 
         with experiment.train():
             X, y = shuffle(X, y)
             model = ModelClass(**kwargs)
-            model.fit(X, y, experiment) # TODO: Log the accuracy at each iteration instead of just the ending accuracy
+            model.fit(
+                X, y, experiment
+            )  # TODO: Log the accuracy at each iteration instead of just the ending accuracy
 
         with experiment.test():
             experiment.log_metric("accuracy", model.score(tX, ty))
@@ -85,5 +91,5 @@ if __name__ == "__main__":
                 model_type=model_type,
                 dataset_name=dataset_name,
                 train_path=train_path,
-                test_path=test_path
+                test_path=test_path,
             )

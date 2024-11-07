@@ -1,7 +1,11 @@
-from sklearn.linear_model import SGDClassifier
-from sklearn.utils import resample
 import random
 from concurrent.futures import ProcessPoolExecutor, as_completed
+
+from sklearn.linear_model import SGDClassifier
+from sklearn.utils import resample
+
+from src.loader import Loader
+
 
 class AddSGDClassifier:
 
@@ -30,43 +34,48 @@ class AddSGDClassifier:
         self.clf = SGDClassifier(**kwargs)
         self.best = self.clf
         self.scores = []
+        self.dev_scores = []
         self.n_iter_ = 0
 
-    def _shuffler(self, X, y):
-        """Resample part of data if epoch_size < 1.0."""
-        if self.epoch_size < 1.0:
-            return resample(X, y, replace=False, n_samples=int(X.shape[0] * self.epoch_size))
-        return X, y
-
     def _early_stop(self):
-        if len(self.scores) > 1 and self.scores[-1] > max(self.scores[:-1]):
+        if len(self.dev_scores) > 1 and self.dev_scores[-1] > max(self.dev_scores[:-1]):
             self.best = self.clf
 
-        if self.scores.index(max(self.scores)) < self.n_iter_ - 25:
+        if self.dev_scores.index(max(self.dev_scores)) < self.n_iter_ - 25:
             self.clf = self.best
             return True
         return False
 
     def _train_one_learner(self, X, y):
         learner = SGDClassifier(**self.kwargs, random_state=random.randint(0, 100000000))
-        learner.fit(*self._shuffler(X, y))
+        learner.fit(*Loader.resample_if(X, y, self.epoch_size))
         return learner
 
     def fit(self, X, y):
-        self.clf.fit(*self._shuffler(X, y)) 
+        # setup and initial scores
+        (X, y), (dX, dy) = Loader.dev_split(X, y)
+        self.clf.fit(*Loader.resample_if(X, y, self.epoch_size))
+        self.dev_scores.append(self.clf.score(dX, dy))
         self.scores.append(self.clf.score(X, y))
 
-        # multiprocessing learners
+        # multiprocess learners
         with ProcessPoolExecutor() as executor:
-            futures = [executor.submit(self._train_one_learner, X, y) for _ in range(self.n_learners - 1)]
-        
-        # sum weights
+            futures = [
+                executor.submit(self._train_one_learner, X, y) for _ in range(self.n_learners - 1)
+            ]
+
         for future in as_completed(futures):
+            # sum weights
             learner = future.result()
             self.clf.coef_ += learner.coef_
             self.clf.intercept_ += learner.intercept_
+
+            # record
+            self.dev_scores.append(self.clf.score(dX, dy))
             self.scores.append(self.clf.score(X, y))
             self.n_iter_ += 1
+
+            # early stop
             if self._early_stop():
                 for future in futures:
                     future.cancel()
