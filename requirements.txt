@@ -1,0 +1,12 @@
+codetiming
+comet_ml
+matplotlib
+numpy
+pydantic
+scikit_learn
+scipy
+tqdm
+yaspin
+black
+isort
+pre-commit

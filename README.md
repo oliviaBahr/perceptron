@@ -1,3 +1,3 @@
 ## A new kind of perceptron!
 
-Data is downloaded with LFS
+Setup your env and download dependencies with `./setup.sh`.
