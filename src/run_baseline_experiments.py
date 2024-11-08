@@ -9,7 +9,6 @@ from sklearn.utils import shuffle
 from tqdm import trange
 
 import addmlpclassifier
-import addperceptron
 import addsgdclassifier
 from loader import Loader
 

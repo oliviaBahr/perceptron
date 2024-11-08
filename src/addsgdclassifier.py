@@ -2,7 +2,6 @@ import random
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
 from sklearn.linear_model import SGDClassifier
-from sklearn.utils import resample
 
 from src.loader import Loader
 

@@ -1,7 +1,9 @@
-from sklearn.linear_model import Perceptron
-from sklearn.utils import resample
 import random
 from concurrent.futures import ProcessPoolExecutor, as_completed
+
+from sklearn.linear_model import Perceptron
+from sklearn.utils import resample
+
 
 class AddPerceptron:
 
@@ -43,8 +45,10 @@ class AddPerceptron:
 
         # multiprocessing learners
         with ProcessPoolExecutor() as executor:
-            futures = [executor.submit(self._train_one_learner, X, y) for _ in range(self.max_iter - 1)]
-        
+            futures = [
+                executor.submit(self._train_one_learner, X, y) for _ in range(self.max_iter - 1)
+            ]
+
         # sum weights
         for future in as_completed(futures):
             learner = future.result()
