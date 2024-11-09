@@ -4,7 +4,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from comet_ml import Experiment
 from sklearn.neural_network import MLPClassifier
 
-from src.loader import Loader
+from loader import Loader
 
 
 class AddMLPClassifier:
@@ -47,9 +47,7 @@ class AddMLPClassifier:
 
         # multiprocessing learners
         with ProcessPoolExecutor() as executor:
-            futures = [
-                executor.submit(self._train_one_learner, X, y) for _ in range(self.max_iter - 1)
-            ]
+            futures = [executor.submit(self._train_one_learner, X, y) for _ in range(self.max_iter - 1)]
 
         # average weights
         for future in as_completed(futures):
@@ -57,16 +55,10 @@ class AddMLPClassifier:
 
             # sum weights
             for i, (prev_weights, new_weights) in enumerate(zip(self.clf.coefs_, learner.coefs_)):
-                self.clf.coefs_[i] = (prev_weights * self.n_iter_ + new_weights) / (
-                    self.n_iter_ + 1
-                )
+                self.clf.coefs_[i] = (prev_weights * self.n_iter_ + new_weights) / (self.n_iter_ + 1)
 
-            for i, (prev_weights, new_weights) in enumerate(
-                zip(self.clf.intercepts_, learner.intercepts_)
-            ):
-                self.clf.intercepts_[i] = (prev_weights * self.n_iter_ + new_weights) / (
-                    self.n_iter_ + 1
-                )
+            for i, (prev_weights, new_weights) in enumerate(zip(self.clf.intercepts_, learner.intercepts_)):
+                self.clf.intercepts_[i] = (prev_weights * self.n_iter_ + new_weights) / (self.n_iter_ + 1)
 
             # score
             self.n_iter_ += 1

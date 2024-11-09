@@ -3,3 +3,5 @@ __pycache__
 data/rcv
 .zed
 .cometml-runs
+.pytest_cache
+.mypy_cache

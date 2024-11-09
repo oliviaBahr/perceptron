@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+import numpy as np
 from numpy import ndarray
 from sklearn.datasets import load_svmlight_file
 from sklearn.feature_extraction import DictVectorizer
@@ -10,15 +11,15 @@ from sklearn.utils import shuffle as sklearn_shuffle
 
 class Loader:
     @staticmethod
-    def get_name(pathname) -> str:
+    def get_name(pathname: str) -> str:
         return pathname.split("/")[-2].lower()
 
     @staticmethod
     @lru_cache
-    def load(
-        trainpath, testpath=None, test_size=None
-    ) -> tuple[tuple[ndarray, ndarray], tuple[ndarray, ndarray]]:
+    def load(trainpath, testpath=None, test_size=None) -> tuple[tuple[ndarray, ndarray], tuple[ndarray, ndarray]]:
         if "imdb" in trainpath.lower():
+            if not testpath:
+                raise ValueError("testpath is required for imdb dataset")
             return Loader._load_imdb_binary(trainpath, testpath)
         elif not testpath:
             return Loader._load_split(trainpath, test_size)
@@ -43,19 +44,18 @@ class Loader:
 
     @staticmethod
     @lru_cache
-    def _load_split(
-        trainpath, test_size=None
-    ) -> tuple[tuple[ndarray, ndarray], tuple[ndarray, ndarray]]:
+    def _load_split(trainpath, test_size=None) -> tuple[tuple[ndarray, ndarray], tuple[ndarray, ndarray]]:
         data = load_svmlight_file(trainpath)
         X, tX, y, ty = train_test_split(data[0], data[1], test_size=test_size, random_state=0)
         return (X, y), (tX, ty)
 
     @staticmethod
     @lru_cache
-    def _load_imdb_binary(
-        trainpath, testpath
-    ) -> tuple[tuple[ndarray, ndarray], tuple[ndarray, ndarray]]:
-        res_X, res_y, res_tX, res_ty = [], [], [], []
+    def _load_imdb_binary(trainpath: str, testpath: str) -> tuple[tuple[ndarray, ndarray], tuple[ndarray, ndarray]]:
+        res_X: list[dict[int, int]] = []
+        res_tX: list[dict[int, int]] = []
+        res_y: list[int] = []
+        res_ty: list[int] = []
 
         featfunc = lambda x: 1 if x > 0 else 0  # make features binary
         classfunc = lambda x: 1 if x > 4 else 0  # make classes binary
@@ -64,11 +64,11 @@ class Loader:
 
         for path, X, y in [(trainpath, res_X, res_y), (testpath, res_tX, res_ty)]:
             for line in open(path):
-                line = line.strip().split()
-                y.append(classfunc(popClass(line)))
-                X.append({int(i): featfunc(float(v)) for i, v in map(splitItem, line)})
+                data = line.strip().split()
+                y.append(classfunc(popClass(data)))
+                X.append({int(i): featfunc(float(v)) for i, v in map(splitItem, data)})
 
         vectorizer = DictVectorizer()
-        res_X = vectorizer.fit_transform(res_X)
-        res_tX = vectorizer.transform(res_tX)
-        return (res_X, res_y), (res_tX, res_ty)
+        Xy = vectorizer.fit_transform(res_X), np.array(res_y)
+        tXy = vectorizer.transform(res_tX), np.array(res_ty)
+        return Xy, tXy

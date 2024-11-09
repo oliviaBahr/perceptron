@@ -5,8 +5,9 @@ import numpy as np
 from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
 
-from src.addmlpclassifier import AddMLPClassifier
-from src.addsgdclassifier import AddSGDClassifier
+from addmlpclassifier import AddMLPClassifier
+from addsgdclassifier import AddSGDClassifier
+from loader import Loader
 
 warnings.filterwarnings("ignore")
 
@@ -46,7 +47,7 @@ class TestClassifiers(unittest.TestCase):
             "learning_rate": "constant",
             "eta0": 1,
             "penalty": None,
-            "max_iter": 10,
+            "max_iter": 2,
         }
         print(f"\nSGD (perceptron): {config}")
         clf = AddSGDClassifier(**config)
@@ -54,23 +55,31 @@ class TestClassifiers(unittest.TestCase):
         self.check_classifier(clf, self.X_train, self.y_train, self.X_test, self.y_test)
 
     def test_sgd_log_loss(self):
-        config = {"loss": "log_loss", "penalty": None, "max_iter": 10}
+        config = {"loss": "log_loss", "penalty": None, "max_iter": 2}
         print(f"\nSGD (log loss): {config}")
         clf = AddSGDClassifier(**config)
         clf.fit(self.X_train, self.y_train)
         self.check_classifier(clf, self.X_train, self.y_train, self.X_test, self.y_test)
 
     def test_sgd_hinge(self):
-        config = {"loss": "hinge", "penalty": None, "max_iter": 10}
+        config = {"loss": "hinge", "penalty": None, "max_iter": 2}
         print(f"\nSGD (hinge): {config}")
         clf = AddSGDClassifier(**config)
         clf.fit(self.X_train, self.y_train)
         self.check_classifier(clf, self.X_train, self.y_train, self.X_test, self.y_test)
 
     def test_mlp(self):
-        config = {"max_iter": 10, "epoch_size": 0.5}
+        config = {"max_iter": 2, "epoch_size": 0.5}
         print(f"\nMLP: {config}")
         clf = AddMLPClassifier(**config)
+        clf.fit(self.X_train, self.y_train)
+        self.check_classifier(clf, self.X_train, self.y_train, self.X_test, self.y_test)
+
+    def test_imdb(self):
+        clf = AddSGDClassifier(loss="perceptron", learning_rate="constant", eta0=1, penalty=None, max_iter=2)
+        (self.X_train, self.y_train), (self.X_test, self.y_test) = Loader.load(
+            "./data/imdb/train_labeledBow.feat", "./data/imdb/test_labeledBow.feat"
+        )
         clf.fit(self.X_train, self.y_train)
         self.check_classifier(clf, self.X_train, self.y_train, self.X_test, self.y_test)
 

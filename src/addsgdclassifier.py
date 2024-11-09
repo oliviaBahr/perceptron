@@ -3,7 +3,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 
 from sklearn.linear_model import SGDClassifier
 
-from src.loader import Loader
+from loader import Loader
 
 
 class AddSGDClassifier:
@@ -59,9 +59,7 @@ class AddSGDClassifier:
 
         # multiprocess learners
         with ProcessPoolExecutor() as executor:
-            futures = [
-                executor.submit(self._train_one_learner, X, y) for _ in range(self.n_learners - 1)
-            ]
+            futures = [executor.submit(self._train_one_learner, X, y) for _ in range(self.n_learners - 1)]
 
         for future in as_completed(futures):
             # sum weights

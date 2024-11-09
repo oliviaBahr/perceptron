@@ -13,7 +13,7 @@ import addsgdclassifier
 from loader import Loader
 
 MODEL_TYPE = Literal["perc", "add_perc", "svm", "add_svm", "lr", "add_lr", "mlp", "add_mlp"]
-CLASSIFIERS: dict[MODEL_TYPE, tuple[Any, dict[str, str | None]]] = {
+CLASSIFIERS: dict[MODEL_TYPE, tuple[Any, dict[str, str | int | None]]] = {
     "perc": (Perceptron, {}),
     "add_perc": (
         addsgdclassifier.AddSGDClassifier,
@@ -28,9 +28,7 @@ CLASSIFIERS: dict[MODEL_TYPE, tuple[Any, dict[str, str | None]]] = {
 }
 
 
-def run_experiment(
-    n_runs: int, model_type: MODEL_TYPE, dataset_name: str, train_path: str, test_path: str
-):
+def run_experiment(n_runs: int, model_type: MODEL_TYPE, dataset_name: str, train_path: str, test_path: str):
     """Runs experiments with a given model and dataset
 
     Args:
@@ -63,9 +61,7 @@ def run_experiment(
         with experiment.train():
             X, y = shuffle(X, y)
             model = ModelClass(**kwargs)
-            model.fit(
-                X, y, experiment
-            )  # TODO: Log the accuracy at each iteration instead of just the ending accuracy
+            model.fit(X, y, experiment)  # TODO: Log the accuracy at each iteration instead of just the ending accuracy
 
         with experiment.test():
             experiment.log_metric("accuracy", model.score(tX, ty))
