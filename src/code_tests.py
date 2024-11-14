@@ -78,7 +78,7 @@ class TestClassifiers(unittest.TestCase):
     def test_imdb(self):
         clf = AddSGDClassifier(loss="perceptron", learning_rate="constant", eta0=1, penalty=None, max_iter=2)
         (self.X_train, self.y_train), (self.X_test, self.y_test) = Loader.load(
-            "./data/imdb/train_labeledBow.feat", "./data/imdb/test_labeledBow.feat"
+            "./classification-data/imdb/train_labeledBow.feat", "./classification-data/imdb/test_labeledBow.feat"
         )
         clf.fit(self.X_train, self.y_train)
         self.check_classifier(clf, self.X_train, self.y_train, self.X_test, self.y_test)

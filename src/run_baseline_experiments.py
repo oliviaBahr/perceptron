@@ -73,8 +73,8 @@ if __name__ == "__main__":
     comet_ml.login()
 
     DATA_PATHS = [
-        ("imdb", "./data/imdb/train_labeledBow.feat", "./data/imdb/test_labeledBow.feat"),
-        # ("cod-rna", "../data/cod-rna/train.csv", "../data/cod-rna/test.csv"),
+        ("imdb", "./classification-data/imdb/train_labeledBow.feat", "./classification-data/imdb/test_labeledBow.feat"),
+        # ("cod-rna", "../classification-data/cod-rna/train.csv", "../classification-data/cod-rna/test.csv"),
     ]
 
     N_RUNS = 100

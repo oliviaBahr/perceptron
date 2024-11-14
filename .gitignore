@@ -1,6 +1,6 @@
 __pycache__
 .neptune
-data/rcv
+classification-data/rcv
 .zed
 .cometml-runs
 .pytest_cache
