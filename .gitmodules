@@ -1,0 +1,3 @@
+[submodule "classification-data"]
+	path = classification-data
+	url = git@hf.co:datasets/michaelginn/classification-data

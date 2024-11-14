@@ -5,3 +5,6 @@ data/rcv
 .cometml-runs
 .pytest_cache
 .mypy_cache
+.DS_Store
+*.png
+.venv
