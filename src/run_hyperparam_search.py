@@ -8,7 +8,7 @@ from tqdm import tqdm
 from tqdm.contrib.concurrent import process_map
 from loader import Loader
 from run_baseline_experiments import CLASSIFIERS, MODEL_TYPE
-from typing import Tuple
+from typing import Collection, Iterable, Tuple
 import numpy as np
 from sklearn.utils import shuffle
 import seaborn as sns
@@ -40,8 +40,8 @@ def _score_run(a_b: Tuple[int, int]):
 
 def run_hyperparam_search(
     model_type: MODEL_TYPE,
-    kwarg_a: Tuple[str, range],
-    kwarg_b: Tuple[str, range],
+    kwarg_a: Tuple[str, Collection],
+    kwarg_b: Tuple[str, Collection],
 ):
     """Runs all combinations over the two hyperparameter ranges and creates a heatmap.
 
@@ -76,5 +76,5 @@ if __name__ == "__main__":
     run_hyperparam_search(
         model_type='add_perc',
         kwarg_a=("num_learners", range(1, 101)),
-        kwarg_b=("max_iter", range(1, 16)),
+        kwarg_b=("epoch_size", [x / 100 for x in range(10, 110, 10)]),
     )
