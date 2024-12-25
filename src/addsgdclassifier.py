@@ -1,13 +1,14 @@
 import random
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
+from sklearn.exceptions import ConvergenceWarning
 from sklearn.linear_model import SGDClassifier
+from sklearn.utils._testing import ignore_warnings
 
 from loader import Loader
 
 
 class AddSGDClassifier:
-
     def __init__(self, **kwargs):
         """Olivia's additive linear classifier implemented through sklearn.
 
@@ -45,11 +46,15 @@ class AddSGDClassifier:
             return True
         return False
 
+    @ignore_warnings(category=ConvergenceWarning)
     def _train_one_learner(self, X, y):
-        learner = SGDClassifier(**self.kwargs, random_state=random.randint(0, 100000000))
+        learner = SGDClassifier(
+            **self.kwargs, random_state=random.randint(0, 100000000)
+        )
         learner.fit(*Loader.resample_if(X, y, self.epoch_size))
         return learner
 
+    @ignore_warnings(category=ConvergenceWarning)
     def fit(self, X, y):
         # setup and initial scores
         (X, y), (dX, dy) = Loader.dev_split(X, y)
@@ -59,7 +64,10 @@ class AddSGDClassifier:
 
         # multiprocess learners
         with ProcessPoolExecutor() as executor:
-            futures = [executor.submit(self._train_one_learner, X, y) for _ in range(self.n_learners - 1)]
+            futures = [
+                executor.submit(self._train_one_learner, X, y)
+                for _ in range(self.n_learners - 1)
+            ]
 
         for future in as_completed(futures):
             # sum weights
