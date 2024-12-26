@@ -14,7 +14,7 @@
 module purge
 module load gcc/11.2.0
 module load mambaforge
-mamba activate perceptrons
+mamba activate perc-soups
 
 cd "/projects/$USER/perceptron"
 
