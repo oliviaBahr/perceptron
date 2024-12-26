@@ -48,9 +48,7 @@ class AddSGDClassifier:
 
     @ignore_warnings(category=ConvergenceWarning)
     def _train_one_learner(self, X, y):
-        learner = SGDClassifier(
-            **self.kwargs, random_state=random.randint(0, 100000000)
-        )
+        learner = SGDClassifier(**self.kwargs, random_state=random.randint(0, 100000000))
         learner.fit(*Loader.resample_if(X, y, self.epoch_size))
         return learner
 
@@ -64,16 +62,13 @@ class AddSGDClassifier:
 
         # multiprocess learners
         with ProcessPoolExecutor() as executor:
-            futures = [
-                executor.submit(self._train_one_learner, X, y)
-                for _ in range(self.n_learners - 1)
-            ]
+            futures = [executor.submit(self._train_one_learner, X, y) for _ in range(self.n_learners - 1)]
 
         for future in as_completed(futures):
             # sum weights
             learner = future.result()
-            self.clf.coef_ += learner.coef_
-            self.clf.intercept_ += learner.intercept_
+            self.clf.coef_ += learner.coef_  # type:ignore
+            self.clf.intercept_ += learner.intercept_  # type:ignore
 
             # record
             self.dev_scores.append(self.clf.score(dX, dy))
