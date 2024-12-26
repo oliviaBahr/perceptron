@@ -8,3 +8,5 @@ classification-data/rcv
 .DS_Store
 *.png
 .venv
+adding_classifier.egg-info
+dist/
