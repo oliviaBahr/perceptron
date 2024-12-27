@@ -2,6 +2,7 @@ from functools import lru_cache
 
 import numpy as np
 from numpy import ndarray
+from scipy.sparse import csr_matrix, spmatrix
 from sklearn.datasets import load_svmlight_file
 from sklearn.feature_extraction import DictVectorizer
 from sklearn.model_selection import train_test_split
@@ -16,7 +17,9 @@ class Loader:
 
     @staticmethod
     @lru_cache
-    def load(trainpath, testpath=None, test_size=None) -> tuple[tuple[ndarray, ndarray], tuple[ndarray, ndarray]]:
+    def load(
+        trainpath, testpath=None, test_size=None
+    ) -> tuple[tuple[spmatrix | ndarray, ndarray], tuple[spmatrix | ndarray, ndarray]]:
         if "imdb" in trainpath.lower():
             if not testpath:
                 raise ValueError("testpath is required for imdb dataset")
@@ -24,22 +27,26 @@ class Loader:
         elif not testpath:
             return Loader._load_split(trainpath, test_size)
         else:
-            return load_svmlight_file(trainpath), load_svmlight_file(testpath)
+            X, y, *_ = load_svmlight_file(trainpath)
+            tX, ty, *_ = load_svmlight_file(testpath)
+            return (X, y), (tX, ty)
 
     @staticmethod
-    def dev_split(X, y, dev_size=0.1) -> tuple[tuple[ndarray, ndarray], tuple[ndarray, ndarray]]:
+    def dev_split(
+        X: spmatrix, y: ndarray, dev_size: float = 0.1
+    ) -> tuple[tuple[spmatrix, ndarray], tuple[spmatrix, ndarray]]:
         X, dX, y, dy = train_test_split(X, y, test_size=dev_size, random_state=0)
         return (X, y), (dX, dy)
 
     @staticmethod
-    def shuffle(X, y) -> tuple[ndarray, ndarray]:
-        return sklearn_shuffle(X, y)
+    def shuffle(X: spmatrix, y: ndarray) -> tuple[spmatrix | ndarray, ndarray]:
+        return sklearn_shuffle(X, y)  # type: ignore
 
     @staticmethod
-    def resample_if(X, y, epoch_size) -> tuple[ndarray, ndarray]:
+    def resample_if(X: spmatrix, y: ndarray, epoch_size: float) -> tuple[spmatrix | ndarray, ndarray]:
         """Resample part of data if epoch_size < 1.0."""
         if epoch_size < 1.0:
-            return resample(X, y, replace=False, n_samples=int(X.shape[0] * epoch_size))
+            return tuple(resample(X, y, replace=False, n_samples=int(X.shape[0] * epoch_size)))  # type: ignore
         return X, y
 
     @staticmethod
@@ -51,9 +58,9 @@ class Loader:
 
     @staticmethod
     @lru_cache
-    def _load_imdb_binary(trainpath: str, testpath: str) -> tuple[tuple[ndarray, ndarray], tuple[ndarray, ndarray]]:
-        res_X: list[dict[int, int]] = []
-        res_tX: list[dict[int, int]] = []
+    def _load_imdb_binary(trainpath: str, testpath: str) -> tuple[tuple[spmatrix, ndarray], tuple[spmatrix, ndarray]]:
+        res_X = []  # type: ignore
+        res_tX = []  # type: ignore
         res_y: list[int] = []
         res_ty: list[int] = []
 
@@ -66,9 +73,9 @@ class Loader:
             for line in open(path):
                 data = line.strip().split()
                 y.append(classfunc(popClass(data)))
-                X.append({int(i): featfunc(float(v)) for i, v in map(splitItem, data)})
+                X.append({i: featfunc(float(v)) for i, v in map(splitItem, data)})
 
         vectorizer = DictVectorizer()
-        Xy = vectorizer.fit_transform(res_X), np.array(res_y)
-        tXy = vectorizer.transform(res_tX), np.array(res_ty)
+        Xy = csr_matrix(vectorizer.fit_transform(res_X)), np.array(res_y)
+        tXy = csr_matrix(vectorizer.transform(res_tX)), np.array(res_ty)
         return Xy, tXy
