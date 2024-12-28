@@ -6,7 +6,7 @@ from sklearn.exceptions import ConvergenceWarning
 from sklearn.neural_network import MLPClassifier
 from sklearn.utils._testing import ignore_warnings
 
-from loader import Loader
+from loader import dev_split, resample_if
 
 
 class AddMLPClassifier:
@@ -33,50 +33,35 @@ class AddMLPClassifier:
             return True
         return False
 
-    @ignore_warnings(category=ConvergenceWarning)
+    @ignore_warnings(category=ConvergenceWarning)  # type: ignore
     def _train_one_learner(self, X, y):
         learner = MLPClassifier(**self.kwargs, random_state=random.randint(0, 1000000))
-        learner.fit(
-            *Loader.resample_if(X, y, self.epoch_size)
-        )  # Use Loader.resample_if
+        learner.fit(*resample_if(X, y, self.epoch_size))
         return learner
 
-    @ignore_warnings(category=ConvergenceWarning)
+    @ignore_warnings(category=ConvergenceWarning)  # type: ignore
     def fit(self, X, y, experiment: Experiment | None = None):
         # Split data into training and development sets
-        (X, y), (dX, dy) = Loader.dev_split(X, y)
-        self.clf.fit(
-            *Loader.resample_if(X, y, self.epoch_size)
-        )  # Use Loader.resample_if
+        (X, y), (dX, dy) = dev_split(X, y)
+        self.clf.fit(*resample_if(X, y, self.epoch_size))
         self.dev_scores.append(self.clf.score(dX, dy))  # Record dev score
         self.scores.append(self.clf.score(X, y))
         self.n_iter_ = 1
 
         # multiprocessing learners
         with ProcessPoolExecutor() as executor:
-            futures = [
-                executor.submit(self._train_one_learner, X, y)
-                for _ in range(self.max_iter - 1)
-            ]
+            futures = [executor.submit(self._train_one_learner, X, y) for _ in range(self.max_iter - 1)]
 
         # average weights
         for future in as_completed(futures):
             learner = future.result()
 
             # sum weights
-            for i, (prev_weights, new_weights) in enumerate(
-                zip(self.clf.coefs_, learner.coefs_)
-            ):
-                self.clf.coefs_[i] = (prev_weights * self.n_iter_ + new_weights) / (
-                    self.n_iter_ + 1
-                )
+            for i, (prev_weights, new_weights) in enumerate(zip(self.clf.coefs_, learner.coefs_)):
+                self.clf.coefs_[i] = (prev_weights * self.n_iter_ + new_weights) / (self.n_iter_ + 1)
 
-            for i, (prev_weights, new_weights) in enumerate(
-                zip(self.clf.intercepts_, learner.intercepts_)
-            ):
-                self.clf.intercepts_[i] = (
-                    prev_weights * self.n_iter_ + new_weights
-                ) / (self.n_iter_ + 1)
+            for i, (prev_weights, new_weights) in enumerate(zip(self.clf.intercepts_, learner.intercepts_)):
+                self.clf.intercepts_[i] = (prev_weights * self.n_iter_ + new_weights) / (self.n_iter_ + 1)
 
             # score
             self.n_iter_ += 1
@@ -85,9 +70,7 @@ class AddMLPClassifier:
 
             # comet logging
             if experiment is not None:
-                experiment.log_metric(
-                    "accuracy", value=self.scores[-1], step=self.n_iter_
-                )
+                experiment.log_metric("accuracy", value=self.scores[-1], step=self.n_iter_)
 
             if self._early_stop():
                 for f in futures:  # Cancel remaining futures

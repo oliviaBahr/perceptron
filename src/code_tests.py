@@ -7,7 +7,7 @@ from sklearn.model_selection import train_test_split
 
 from addmlpclassifier import AddMLPClassifier
 from addsgdclassifier import AddSGDClassifier
-from loader import Loader
+from loader import load_dir
 
 warnings.filterwarnings("ignore")
 
@@ -77,9 +77,12 @@ class TestClassifiers(unittest.TestCase):
 
     def test_imdb(self):
         clf = AddSGDClassifier(loss="perceptron", learning_rate="constant", eta0=1, penalty=None, max_iter=2)
-        (self.X_train, self.y_train), (self.X_test, self.y_test) = Loader.load(
-            "./classification-data/imdb/train_labeledBow.feat", "./classification-data/imdb/test_labeledBow.feat"
-        )
+        clf.fit(self.X_train, self.y_train)
+        self.check_classifier(clf, self.X_train, self.y_train, self.X_test, self.y_test)
+
+    def test_loader_ijcnn(self):
+        (self.X_train, self.y_train), (self.X_test, self.y_test) = load_dir("./classification-data/cod-rna")
+        clf = AddSGDClassifier(loss="perceptron", learning_rate="constant", eta0=1, penalty=None, max_iter=2)
         clf.fit(self.X_train, self.y_train)
         self.check_classifier(clf, self.X_train, self.y_train, self.X_test, self.y_test)
 

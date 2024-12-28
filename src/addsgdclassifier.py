@@ -5,7 +5,9 @@ from sklearn.exceptions import ConvergenceWarning
 from sklearn.linear_model import SGDClassifier
 from sklearn.utils._testing import ignore_warnings
 
-from loader import Loader
+from loader import dev_split, resample_if
+
+ignore_warnings(category=ConvergenceWarning)  # type: ignore
 
 
 class AddSGDClassifier:
@@ -46,17 +48,17 @@ class AddSGDClassifier:
             return True
         return False
 
-    @ignore_warnings(category=ConvergenceWarning)
+    @ignore_warnings(category=ConvergenceWarning)  # type: ignore
     def _train_one_learner(self, X, y):
         learner = SGDClassifier(**self.kwargs, random_state=random.randint(0, 100000000))
-        learner.fit(*Loader.resample_if(X, y, self.epoch_size))
+        learner.fit(*resample_if(X, y, self.epoch_size))
         return learner
 
-    @ignore_warnings(category=ConvergenceWarning)
+    @ignore_warnings(category=ConvergenceWarning)  # type: ignore
     def fit(self, X, y):
         # setup and initial scores
-        (X, y), (dX, dy) = Loader.dev_split(X, y)
-        self.clf.fit(*Loader.resample_if(X, y, self.epoch_size))
+        (X, y), (dX, dy) = dev_split(X, y)
+        self.clf.fit(*resample_if(X, y, self.epoch_size))
         self.dev_scores.append(self.clf.score(dX, dy))
         self.scores.append(self.clf.score(X, y))
 
