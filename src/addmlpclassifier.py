@@ -58,10 +58,10 @@ class AddMLPClassifier:
 
             # sum weights
             for i, (prev_weights, new_weights) in enumerate(zip(self.clf.coefs_, learner.coefs_)):
-                self.clf.coefs_[i] = (prev_weights * self.n_iter_ + new_weights) / (self.n_iter_ + 1)
+                self.clf.coefs_[i] += (new_weights - prev_weights) / (self.n_iter_ + 1)
 
             for i, (prev_weights, new_weights) in enumerate(zip(self.clf.intercepts_, learner.intercepts_)):
-                self.clf.intercepts_[i] = (prev_weights * self.n_iter_ + new_weights) / (self.n_iter_ + 1)
+                self.clf.intercepts_[i] += (new_weights - prev_weights) / (self.n_iter_ + 1)
 
             # score
             self.n_iter_ += 1
