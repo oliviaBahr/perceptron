@@ -1,5 +1,6 @@
 from os import listdir
 from os.path import abspath, join
+from functools import lru_cache
 
 import numpy as np
 from numpy import ndarray
@@ -10,7 +11,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.utils import resample
 from sklearn.utils import shuffle as sklearn_shuffle
 
-
+@lru_cache
 def load_dir(
     path: str, multilabel: bool = False
 ) -> tuple[tuple[spmatrix | ndarray, ndarray], tuple[spmatrix | ndarray, ndarray]]:
@@ -31,6 +32,7 @@ def load_dir(
     return (X, y), (tX, ty)
 
 
+@lru_cache
 def load_file(path: str, multilabel: bool = False) -> tuple[spmatrix | ndarray, ndarray]:
     if "imdb" in path.lower():
         raise ValueError("Use load_dir() for the imdb dataset")
@@ -38,7 +40,7 @@ def load_file(path: str, multilabel: bool = False) -> tuple[spmatrix | ndarray, 
         X, y, *_ = load_svmlight_file(path, multilabel=multilabel)
         return X, y
 
-
+@lru_cache
 def dev_split(
     X: spmatrix | ndarray, y: ndarray, dev_size=0.1
 ) -> tuple[tuple[spmatrix | ndarray, ndarray], tuple[spmatrix | ndarray, ndarray]]:
