@@ -10,3 +10,4 @@ classification-data/rcv
 .venv
 adding_classifier.egg-info
 dist/
+build
