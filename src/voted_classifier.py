@@ -66,8 +66,8 @@ class VotedClassifier:
             self.clfs.append(future.result())
 
             # record
-            dev_scores.append(self.score(dX, dy))
-            scores.append(self.score(X, y))
+            # dev_scores.append(self.score(dX, dy))
+            # scores.append(self.score(X, y))
 
     def predict(self, X) -> np.ndarray:
         preds = np.array([clf.predict(X) for clf in self.clfs])  # (num_learners, |X|)
