@@ -71,8 +71,19 @@ class VotedClassifier:
 
     def predict(self, X) -> np.ndarray:
         preds = np.array([clf.predict(X) for clf in self.clfs])  # (num_learners, |X|)
-        preds = np.max(preds, 0)  # simple majority vote
-        return preds
+        u, indices = np.unique(preds, return_inverse=True)
+        return u[
+            np.argmax(
+                np.apply_along_axis(
+                    np.bincount,
+                    0,
+                    indices.reshape(preds.shape),
+                    None,
+                    np.max(indices) + 1,
+                ),
+                axis=0,
+            )
+        ]
 
     def score(self, X, y) -> float:
         preds = self.predict(X)
