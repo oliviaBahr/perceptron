@@ -1,12 +1,11 @@
-import random
-from concurrent.futures import ProcessPoolExecutor, as_completed
 from typing import Any, Type
 
 import numpy as np
+import sklearn.metrics
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils._testing import ignore_warnings
 
-from loader import dev_split, resample_if
+from .loader import resample_if
 
 ignore_warnings(category=ConvergenceWarning)  # type: ignore
 
@@ -45,29 +44,19 @@ class VotedClassifier:
         self.clfs: list[BaseLearner] = []
 
     @ignore_warnings(category=ConvergenceWarning)  # type: ignore
-    def _train_one_learner(self, X, y):
-        learner = self.LearnerClass(**self.learner_kwargs, random_state=random.randint(0, 100000000))
-        learner.fit(X, y)
-        return learner
-
-    @ignore_warnings(category=ConvergenceWarning)  # type: ignore
     def fit(self, X, y):
-        (X, y), (dX, dy) = dev_split(X, y)
+        num_labels = len(set(y))
 
-        # Train learners in parallel
-        with ProcessPoolExecutor() as executor:
-            futures = [
-                executor.submit(self._train_one_learner, *resample_if(X, y, self.training_size or 1))
-                for _ in range(self.n_learners)
-            ]
+        for _ in range(self.n_learners):
+            learner = self.LearnerClass(**self.learner_kwargs)
+            while True:
+                X_subset, y_subset = resample_if(X, y, self.training_size or 1)  # type:ignore
 
-        dev_scores, scores = [], []
-        for future in as_completed(futures):
-            self.clfs.append(future.result())
-
-            # record
-            # dev_scores.append(self.score(dX, dy))
-            # scores.append(self.score(X, y))
+                # Repeat if we chose a subset missing labels
+                if len(set(y_subset)) == num_labels:
+                    break
+            learner.fit(X_subset, y_subset)
+            self.clfs.append(learner)
 
     def predict(self, X) -> np.ndarray:
         preds = np.array([clf.predict(X) for clf in self.clfs])  # (num_learners, |X|)
@@ -87,5 +76,4 @@ class VotedClassifier:
 
     def score(self, X, y) -> float:
         preds = self.predict(X)
-        correct = np.sum(preds == y).item()
-        return correct / y.shape[-1]
+        return sklearn.metrics.accuracy_score(y, preds)

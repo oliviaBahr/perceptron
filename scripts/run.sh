@@ -1,9 +1,8 @@
 #!/bin/bash
 #SBATCH --nodes=1
-#SBATCH --ntasks=4
+#SBATCH --ntasks=8
 #SBATCH --mem=32G
-#SBATCH --time=1-00:00:00
-#SBATCH --qos=blanca-curc-gpu
+#SBATCH --time=4-00:00:00
 #SBATCH --partition=blanca-curc-gpu
 #SBATCH --account=blanca-curc-gpu
 #SBATCH --out=log.%j.out
@@ -18,4 +17,4 @@ mamba activate perc-soup
 
 cd "/projects/$USER/perceptron"
 
-python src/run_baseline_experiments.py
+python src/run_hyperparameter_sweep.py

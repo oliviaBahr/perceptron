@@ -1,11 +1,9 @@
-import random
-from concurrent.futures import ProcessPoolExecutor, as_completed
 from typing import Any, Type
 
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils._testing import ignore_warnings
 
-from loader import dev_split, resample_if
+from implementation.loader import resample_if
 
 ignore_warnings(category=ConvergenceWarning)  # type: ignore
 
@@ -47,26 +45,21 @@ class SoupClassifier:
         self.souped_clf: BaseLearner | None = None
 
     @ignore_warnings(category=ConvergenceWarning)  # type: ignore
-    def _train_one_learner(self, X, y):
-        learner = self.LearnerClass(**self.learner_kwargs, random_state=random.randint(0, 100000000))
-        learner.fit(X, y)
-        return learner
-
-    @ignore_warnings(category=ConvergenceWarning)  # type: ignore
     def fit(self, X, y):
-        (X, y), (dX, dy) = dev_split(X, y)
+        num_labels = len(set(y))
 
-        # Train learners in parallel
-        with ProcessPoolExecutor() as executor:
-            futures = [
-                executor.submit(self._train_one_learner, *resample_if(X, y, self.training_size or 1))
-                for _ in range(self.n_learners)
-            ]
-
-        dev_scores, scores = [], []
+        scores = []
         count = 0
-        for future in as_completed(futures):
-            clf = future.result()
+        for _ in range(self.n_learners):
+            clf = self.LearnerClass(**self.learner_kwargs)
+            while True:
+                X_subset, y_subset = resample_if(X, y, self.training_size or 1)  # type:ignore
+
+                # Repeat if we chose a subset missing labels
+                if len(set(y_subset)) == num_labels:
+                    break
+            clf.fit(X_subset, y_subset)
+
             if self.souped_clf is None:
                 self.souped_clf = clf
             else:
@@ -89,10 +82,9 @@ class SoupClassifier:
                 else:
                     raise ValueError("Need coef_ or coefs_ to soup!")
 
-            # record
-            dev_scores.append(self.score(dX, dy))
+            # record training scores
             scores.append(self.score(X, y))
-        return dev_scores, scores
+        return scores
 
     def predict(self, X):
         if self.souped_clf is None:

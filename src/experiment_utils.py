@@ -1,6 +1,7 @@
+import pathlib
 from os import listdir
-from os.path import abspath, basename, isdir, join
-from typing import Any, Literal, get_args
+from os.path import basename, isdir, join
+from typing import Any, Literal
 
 import comet_ml
 from sklearn.linear_model import SGDClassifier
@@ -8,14 +9,15 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.utils import shuffle
 from tqdm import trange
 
-from loader import load_dir
-from soup_classifier import SoupClassifier
-from voted_classifier import VotedClassifier
+from implementation.loader import load_dir
+from implementation.soup_classifier import SoupClassifier
+from implementation.voted_classifier import VotedClassifier
 
-DATA_DIRS = [abspath(join("classification-data", d)) for d in listdir("classification-data")]
+classification_dir = join(pathlib.Path(__file__).parent.resolve(), "../classification-data")
+DATA_DIRS = [join(classification_dir, d) for d in listdir(classification_dir)]
 DATA_DIRS = [d for d in DATA_DIRS if isdir(d)]
 
-ARCH_TYPE = Literal["perc", "svm", "logistic", "mlp"]
+ARCH_TYPE = Literal["perc", "svm", "logistic"]
 ENSEMBLE_TYPE = Literal["none", "soup", "voted"]
 
 
@@ -69,6 +71,7 @@ def _make_model(
 
 
 def run_experiment(
+    project_name: str,
     n_runs: int,
     dirpath: str,
     arch: ARCH_TYPE,
@@ -85,7 +88,7 @@ def run_experiment(
         dirpath (str): Absolute path to the directory containing the dataset
     """
     experiment = comet_ml.Experiment(
-        project_name="baselines-v3",
+        project_name=project_name,
         workspace="perceptrons",
         log_code=False,
         log_graph=False,
@@ -123,32 +126,3 @@ def run_experiment(
         with experiment.test():
             experiment.log_metric("accuracy", model.score(tX, ty))
     experiment.end()
-
-
-if __name__ == "__main__":
-    comet_ml.login()
-
-    NUM_RUNS = 100
-    NUM_ITERATIONS = 100  # num epochs for single models, num learners for ensembles
-    NUM_EPOCHS_PER_LEARNER = 1
-    TRAINING_SIZE = 0.5
-
-    for dirpath in DATA_DIRS:
-        for arch in get_args(ARCH_TYPE):
-            # Skip the MLP for baselines, let's make that a separate study
-            if "mlp" in arch:
-                continue
-
-            for ensemble_type in get_args(ENSEMBLE_TYPE):
-                print(f"Training {arch} - {ensemble_type}")
-
-                run_experiment(
-                    n_runs=NUM_RUNS,
-                    dirpath=dirpath,
-                    arch=arch,
-                    ensemble_type=ensemble_type,
-                    max_epochs_per_learner=(NUM_ITERATIONS if ensemble_type == "none" else NUM_EPOCHS_PER_LEARNER),
-                    num_learners=NUM_ITERATIONS,
-                    training_size=TRAINING_SIZE,
-                    learner_kwargs={},
-                )

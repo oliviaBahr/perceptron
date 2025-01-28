@@ -43,9 +43,9 @@ def load_file(path: str, multilabel: bool = False) -> tuple[spmatrix | ndarray, 
 
 
 def dev_split(
-    X: spmatrix | ndarray, y: ndarray, dev_size=0.1
+    X: spmatrix | ndarray, y: ndarray, dev_size=0.1, random_state=0
 ) -> tuple[tuple[spmatrix | ndarray, ndarray], tuple[spmatrix | ndarray, ndarray]]:
-    X, dX, y, dy = train_test_split(X, y, test_size=dev_size, random_state=0)
+    X, dX, y, dy = train_test_split(X, y, test_size=dev_size, random_state=random_state)
     return (X, y), (dX, dy)
 
 
@@ -68,7 +68,9 @@ def _load_split(
     return (X, y), (tX, ty)
 
 
-def _load_imdb_binary(paths: list[str]) -> tuple[tuple[spmatrix, ndarray], tuple[spmatrix, ndarray]]:
+def _load_imdb_binary(
+    paths: list[str],
+) -> tuple[tuple[spmatrix, ndarray], tuple[spmatrix, ndarray]]:
     if len(paths) != 2:
         raise ValueError(f"Expected 2 files, got {len(paths)}: {paths}")
 
@@ -84,7 +86,6 @@ def _load_imdb_binary(paths: list[str]) -> tuple[tuple[spmatrix, ndarray], tuple
     splitItem = lambda x: x.split(":")
 
     with open(trainpath) as trainfile, open(testpath) as testfile:
-
         for line in trainfile:
             data = line.strip().split()
             res_y.append(classfunc(popClass(data)))
