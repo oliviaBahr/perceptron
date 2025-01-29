@@ -15,7 +15,7 @@ from implementation.loader import load_dir
 TRAINING_SUBSET_SIZES = [(i + 1) / 10 for i in range(10)]
 LEARNING_EPOCHS_SETTINGS = list(range(1, 6)) + [None]
 
-NUM_FOLDS = 3
+NUM_FOLDS = 10
 NUM_LEARNERS = 100
 
 
@@ -39,7 +39,9 @@ def optimize_over_dataset(dirpath, ensemble_type, pos):
         train_split, dev_split = splits
 
         for subset_size_index, subset_size in enumerate(TRAINING_SUBSET_SIZES):
-            for learning_epochs_index, learning_epochs_setting in enumerate(LEARNING_EPOCHS_SETTINGS):
+            for learning_epochs_index, learning_epochs_setting in enumerate(
+                LEARNING_EPOCHS_SETTINGS
+            ):
                 for i, arch in enumerate(get_args(ARCH_TYPE)):
                     model = _make_model(
                         arch=arch,
@@ -53,7 +55,9 @@ def optimize_over_dataset(dirpath, ensemble_type, pos):
                     preds = model.predict(X[dev_split])  # type:ignore
                     f1 = sklearn.metrics.f1_score(y[dev_split], preds, average="macro")
                     # accuracy = sklearn.metrics.accuracy_score(y[dev_split], preds)
-                    results[subset_size_index, learning_epochs_index, fold_index, i] = f1
+                    results[subset_size_index, learning_epochs_index, fold_index, i] = (
+                        f1
+                    )
                     pbar.update()
 
     results = np.mean(results, axis=(-2, -1))
@@ -70,4 +74,6 @@ if __name__ == "__main__":
     with ProcessPoolExecutor() as executer:
         for i, dir in enumerate(DATA_DIRS):
             for j, ensemble_type in enumerate(get_args(Literal["voted", "soup"])):
-                executer.submit(optimize_over_dataset, dir, ensemble_type, i + (j * len(DATA_DIRS)))
+                executer.submit(
+                    optimize_over_dataset, dir, ensemble_type, i + (j * len(DATA_DIRS))
+                )
