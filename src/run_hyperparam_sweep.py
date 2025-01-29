@@ -1,6 +1,5 @@
 """Runs 10-fold cross-validation to optimize the training subset size parameter"""
 
-from concurrent.futures import ProcessPoolExecutor
 from typing import Literal, get_args
 
 import numpy as np
@@ -13,7 +12,7 @@ from implementation.loader import load_dir
 
 # hyparparameter settings
 TRAINING_SUBSET_SIZES = [(i + 1) / 10 for i in range(10)]
-LEARNING_EPOCHS_SETTINGS = list(range(1, 6)) + [None]
+LEARNING_EPOCHS_SETTINGS = list(range(1, 6)) + [1000]
 
 NUM_FOLDS = 10
 NUM_LEARNERS = 100
@@ -71,9 +70,10 @@ def optimize_over_dataset(dirpath, ensemble_type, pos):
 
 if __name__ == "__main__":
     # Optimize each dataset individually
-    with ProcessPoolExecutor() as executer:
-        for i, dir in enumerate(DATA_DIRS):
-            for j, ensemble_type in enumerate(get_args(Literal["voted", "soup"])):
-                executer.submit(
-                    optimize_over_dataset, dir, ensemble_type, i + (j * len(DATA_DIRS))
-                )
+    # with ProcessPoolExecutor() as executer:
+    for i, dir in enumerate(DATA_DIRS):
+        for j, ensemble_type in enumerate(get_args(Literal["voted", "soup"])):
+            # executer.submit(
+            #     optimize_over_dataset, dir, ensemble_type, i + (j * len(DATA_DIRS))
+            # )
+            optimize_over_dataset(dir, ensemble_type, i + (j * len(DATA_DIRS)))
