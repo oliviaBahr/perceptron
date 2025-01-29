@@ -1,10 +1,9 @@
 #!/bin/bash
 #SBATCH --nodes=1
-#SBATCH --ntasks=8
+#SBATCH --ntasks=32
 #SBATCH --mem=32G
-#SBATCH --time=4-00:00:00
-#SBATCH --partition=blanca-curc-gpu
-#SBATCH --account=blanca-curc-gpu
+#SBATCH --time=1-00:00:00
+#SBATCH --partition=amilan
 #SBATCH --out=log.%j.out
 #SBATCH --error=log.%j.err
 #SBATCH --mail-type=ALL
@@ -17,4 +16,4 @@ mamba activate perc-soup
 
 cd "/projects/$USER/perceptron"
 
-python src/run_hyperparameter_sweep.py
+python src/run_hyperparam_sweep.py
