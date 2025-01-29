@@ -57,9 +57,7 @@ def optimize_over_dataset(dirpath, pos):
                         results[subset_size_index, learning_epochs_index, fold_index, i, j] = f1
                         pbar.update()
 
-    breakpoint()
     results = np.mean(results, axis=(-3, -2, -1))
-    breakpoint()
     np.savetxt(f"results/{dataset_name}.sweep.csv", results, delimiter=",", fmt="%.3e")
 
 
