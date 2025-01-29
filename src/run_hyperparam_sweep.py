@@ -53,10 +53,10 @@ def optimize_over_dataset(dirpath, ensemble_type, pos):
                     preds = model.predict(X[dev_split])  # type:ignore
                     f1 = sklearn.metrics.f1_score(y[dev_split], preds, average="macro")
                     # accuracy = sklearn.metrics.accuracy_score(y[dev_split], preds)
-                    results[subset_size_index, learning_epochs_index, fold_index, i, j] = f1
+                    results[subset_size_index, learning_epochs_index, fold_index, i] = f1
                     pbar.update()
 
-    results = np.mean(results, axis=(-3, -2, -1))
+    results = np.mean(results, axis=(-2, -1))
     np.savetxt(
         f"results/{dataset_name}.{ensemble_type}.sweep.csv",
         results,
@@ -69,5 +69,5 @@ if __name__ == "__main__":
     # Optimize each dataset individually
     with ProcessPoolExecutor() as executer:
         for i, dir in enumerate(DATA_DIRS):
-            for ensemble_type in get_args(Literal["voted", "soup"]):
-                executer.submit(optimize_over_dataset, dir, ensemble_type, i)
+            for j, ensemble_type in enumerate(get_args(Literal["voted", "soup"])):
+                executer.submit(optimize_over_dataset, dir, ensemble_type, i + (j * len(DATA_DIRS)))
