@@ -13,7 +13,7 @@ from implementation.loader import load_dir
 
 # hyparparameter settings
 TRAINING_SUBSET_SIZES = [(i + 1) / 10 for i in range(10)]
-LEARNING_EPOCHS_SETTINGS = range(1, 6)
+LEARNING_EPOCHS_SETTINGS = list(range(1, 6)) + [None]
 
 NUM_FOLDS = 3
 NUM_LEARNERS = 100

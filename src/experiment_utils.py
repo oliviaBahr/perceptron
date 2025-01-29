@@ -24,7 +24,7 @@ ENSEMBLE_TYPE = Literal["none", "soup", "voted"]
 def _make_model(
     arch: ARCH_TYPE,
     ensemble_type: ENSEMBLE_TYPE,
-    max_epochs_per_learner: int,
+    max_epochs_per_learner: int | None,
     num_learners: int,
     training_size: float,
     learner_kwargs: dict[str, Any],
